@@ -234,17 +234,21 @@ function updateProgress(emp) {
 
 // --- APP UI CORE ---
 window.login = (type, id, pass) => {
-    console.log("Attempting Login:", id);
-    if (!store || !store.employees) return alert("System still loading. Please wait...");
+    const userInp = document.getElementById('login-user');
+    const passInp = document.getElementById('login-pass');
+    userInp.classList.remove('border-rose-500', 'ring-rose-500/50');
+    passInp.classList.remove('border-rose-500', 'ring-rose-500/50');
+
+    if (!store || !store.employees) return alert("System still loading...");
     
     const emp = store.employees[id];
     if (!emp) {
-        console.warn("User Not Found:", id);
+        userInp.classList.add('border-rose-500', 'ring-rose-500/50');
         return showNote("Invalid Username or ID.");
     }
     
     if (emp.password && emp.password !== pass) {
-        console.warn("Invalid Password for:", id);
+        passInp.classList.add('border-rose-500', 'ring-rose-500/50');
         return showNote("Incorrect password.");
     }
 
@@ -262,7 +266,6 @@ window.login = (type, id, pass) => {
     document.getElementById('app-container').classList.remove('opacity-0', 'blur-xl');
     renderSidebar(); 
     render();
-    console.log("Login Successful:", id);
 };
 
 window.logout = () => {
