@@ -120,11 +120,14 @@ async function loadFromCloud() {
 
             let added = false;
             bulkUsers.forEach((name, i) => {
-                const id = `emp-${1000 + i}`;
-                if (!store.employees[id]) {
-                    store.employees[id] = {
-                        id, name, icon: name.split(' ').map(n => n[0]).join(''), role: 'employee', 
-                        password: id + '@2026', // UNIQUE DEFAULT PASSWORD
+                const username = name.toLowerCase().replace(/\s+/g, '.');
+                if (!store.employees[username]) {
+                    store.employees[username] = {
+                        id: username, 
+                        name, 
+                        icon: name.split(' ').map(n => n[0]).join(''), 
+                        role: 'employee', 
+                        password: name.split(' ')[0].toLowerCase() + '@2026', // e.g. pramod@2026
                         designation: 'Resource',
                         kras: JSON.parse(JSON.stringify(KRA_TEMPLATE)),
                         ksa: JSON.parse(JSON.stringify(KSA_TEMPLATE)),
@@ -141,19 +144,22 @@ async function loadFromCloud() {
                 added = true;
             }
 
-            // FORCE UNIQUE PASSWORDS
+            // AUTO-CLEANUP DUPLICATES (Migration Support)
             Object.keys(store.employees).forEach(id => {
-                if (id !== 'admin' && (store.employees[id].password === 'smart2026' || !store.employees[id].password)) {
-                    store.employees[id].password = id + '@2026';
-                    added = true;
+                if (id.startsWith('emp-')) {
+                    const emp = store.employees[id];
+                    const targetId = emp.name.toLowerCase().replace(/\s+/g, '.');
+                    if (id !== targetId) {
+                        console.log(`Consolidating ${id} into ${targetId}`);
+                        if (!store.employees[targetId]) {
+                            store.employees[targetId] = JSON.parse(JSON.stringify(emp));
+                            store.employees[targetId].id = targetId;
+                        }
+                        delete store.employees[id];
+                        added = true;
+                    }
                 }
             });
-
-            if (!store.employees['admin'] || store.employees['admin'].password === 'admin') {
-                if (!store.employees['admin']) store.employees['admin'] = JSON.parse(JSON.stringify(INITIAL_DATA.employees['admin']));
-                store.employees['admin'].password = 'admin@2026';
-                added = true;
-            }
 
             if (added) save();
             
@@ -161,6 +167,14 @@ async function loadFromCloud() {
             const sessionData = localStorage.getItem('sa_eval_session');
             if (sessionData) {
                 const session = JSON.parse(sessionData);
+                
+                // VALIDATE ID (Migration Support)
+                if (session.user && !store.employees[session.user.id]) {
+                    console.warn("Outdated session ID found. Clearing...");
+                    localStorage.removeItem('sa_eval_session');
+                    return render();
+                }
+
                 store.currentUser = session.user;
                 store.selectedEmployeeId = session.selectedId;
                 currentView = session.view || (store.currentUser.role === 'employee' ? 'kra' : 'dashboard');
@@ -187,23 +201,50 @@ async function loadFromCloud() {
 
 // -- ANALYTICS --
 function getStatus(emp) {
+    if (emp.statusOverride) return emp.statusOverride;
     const selfDone = emp.kras.every(k => k.self.rating > 0 && k.self.justification.trim().length > 0) &&
         Object.values(emp.ksa).every(k => k.self.rating > 0 && k.self.justification.trim().length > 0);
     const l1Done = emp.kras.every(k => k.l1.rating > 0) && Object.values(emp.ksa).every(k => k.l1.rating > 0);
     const l2Done = emp.kras.every(k => k.l2.rating > 0) && Object.values(emp.ksa).every(k => k.l2.rating > 0);
     if (l2Done) return 'L2 Completed';
     if (l1Done) return 'L1 Completed';
-    if (selfDone) return 'Self Completed';
+    if (selfDone) return 'Self Done';
     return 'Draft';
 }
+
+window.saveDraft = () => {
+    save();
+    showNote("Progress saved to cloud successfully.");
+};
+
+window.submitReview = () => {
+    const emp = store.employees[store.selectedEmployeeId];
+    const role = store.currentUser.role;
+    
+    let newStatus = "";
+    if (role === 'employee') newStatus = "Self-Completed";
+    else if (role === 'l1') newStatus = "L1-Approved";
+    else if (role === 'l2') newStatus = "L2-Finalized";
+    else return showNote("Administrators cannot submit appraisal reviews.");
+
+    if (confirm(`Are you sure you want to officially submit this evaluation as ${newStatus}?`)) {
+        emp.statusOverride = newStatus;
+        if (role === 'l1') emp.l1_reviewer = store.currentUser.name;
+        if (role === 'l2') emp.l2_reviewer = store.currentUser.name;
+        
+        save();
+        render();
+        showNote(`Appraisal officially submitted as ${newStatus}.`);
+    }
+};
 
 function getTeamStats() {
     const stats = { draft: 0, self: 0, l1: 0, l2: 0, total: Object.keys(store.employees).length };
     Object.values(store.employees).forEach(e => {
         const s = getStatus(e);
-        if (s === 'L2 Completed') stats.l2++;
-        else if (s === 'L1 Completed') stats.l1++;
-        else if (s === 'Self Completed') stats.self++;
+        if (s === 'L2 Completed' || s === 'L2-Finalized') stats.l2++;
+        else if (s === 'L1 Completed' || s === 'L1-Approved') stats.l1++;
+        else if (s === 'Self Done' || s === 'Self-Completed') stats.self++;
         else stats.draft++;
     });
     return stats;
@@ -311,6 +352,15 @@ window.navigate = (v) => {
     render(); 
 };
 
+let searchQuery = "";
+window.handleSearch = (val) => {
+    searchQuery = val.toLowerCase();
+    const adminBody = document.getElementById('admin-table-body');
+    const dashBody = document.getElementById('dashboard-list-body');
+    if (adminBody) renderAdminResults(adminBody);
+    if (dashBody) renderDashboardResults(dashBody);
+};
+
 function renderSidebar() {
     const nav = document.getElementById('sidebar-nav'); nav.innerHTML = '';
     const menu = [
@@ -337,7 +387,15 @@ function render() {
     // Auto-view logic
     if (store.currentUser.role === 'employee' && currentView === 'dashboard') currentView = 'kra';
 
-    const emp = store.employees[store.selectedEmployeeId] || store.employees[store.currentUser.id];
+    let emp = store.employees[store.selectedEmployeeId] || store.employees[store.currentUser.id];
+    if (!emp) {
+        // Find first available resource as fallback
+        const fallbackId = Object.keys(store.employees).find(k => k !== 'admin');
+        if (fallbackId) {
+            store.selectedEmployeeId = fallbackId;
+            emp = store.employees[fallbackId];
+        }
+    }
     if (!body || !emp) return;
     
     body.innerHTML = '';
@@ -357,32 +415,51 @@ function render() {
     lucide.createIcons();
 }
 
-window.exportToCsv = () => {
-    const rows = [
-        ['Employee ID', 'Name', 'Role', 'Status', 'KRA Score', 'KSA Score', 'Final Rating']
-    ];
+window.exportToCsv = (fullDump = false) => {
+    let rows = [];
+    if (fullDump) {
+        // Collect headers from templates
+        const kraHeaders = KRA_TEMPLATE.map(k => [`${k.title} (Rating)`, `${k.title} (Comment)`]).flat();
+        const ksaHeaders = Object.keys(KSA_TEMPLATE).map(k => [`${KSA_TEMPLATE[k].label} (Rating)`, `${KSA_TEMPLATE[k].label} (Comment)`]).flat();
+        
+        rows.push(['Employee ID', 'Name', 'Role', 'Status', 'L1 Reviewer', 'L2 Reviewer', 'Final Score', ...kraHeaders, ...ksaHeaders]);
 
-    Object.entries(store.employees).forEach(([id, u]) => {
-        if (u.role === 'admin') return;
-        const scores = calculateScores(u);
-        rows.push([
-            id,
-            u.name,
-            u.role,
-            getStatus(u),
-            scores.kra,
-            scores.ksa,
-            scores.final
-        ]);
-    });
+        Object.entries(store.employees).forEach(([id, u]) => {
+            if (u.role === 'admin') return;
+            const scores = calculateScores(u);
+            const row = [id, u.name, u.role, getStatus(u), u.l1_reviewer || 'N/A', u.l2_reviewer || 'N/A', scores.final];
+            
+            // Add KRA ratings and justifications
+            (u.kras || []).forEach(k => {
+                row.push(k.self.rating || 0);
+                row.push(`"${(k.self.justification || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`);
+            });
+            
+            // Add KSA ratings and justifications
+            Object.keys(u.ksa || {}).forEach(k => {
+                row.push(u.ksa[k].self.rating || 0);
+                row.push(`"${(u.ksa[k].self.justification || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`);
+            });
+            
+            rows.push(row);
+        });
+    } else {
+        rows = [['Employee ID', 'Name', 'Role', 'Status', 'KRA Score', 'KSA Score', 'Final Rating']];
+        Object.entries(store.employees).forEach(([id, u]) => {
+            if (u.role === 'admin') return;
+            const scores = calculateScores(u);
+            rows.push([id, u.name, u.role, getStatus(u), scores.kra, scores.ksa, scores.final]);
+        });
+    }
 
     const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `Smartavya_Performance_Report_2026.csv`);
+    link.setAttribute("download", fullDump ? `Smartavya_Evaluation_Dump_2026.csv` : `Smartavya_Performance_Report_2026.csv`);
     document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
 };
 
 window.deleteUser = (id) => {
@@ -420,6 +497,11 @@ function renderAdmin(container) {
                     <p class="text-slate-500 font-bold text-sm uppercase mt-1">Admin Control Center</p>
                 </div>
                 <div class="flex gap-4">
+                    <div class="relative min-w-[300px]">
+                        <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
+                        <input type="text" placeholder="Search resources..." oninput="handleSearch(this.value)" value="${searchQuery}" 
+                            class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-orange-500/20 outline-none transition-all">
+                    </div>
                     <button onclick="exportToCsv()" class="px-6 py-3 bg-slate-100 text-slate-700 rounded-2xl font-black flex items-center gap-2 hover:bg-slate-200 transition-all">
                         <i data-lucide="download" class="w-5 h-5"></i> Export CSV
                     </button>
@@ -459,34 +541,40 @@ function renderAdmin(container) {
                             <th class="p-6 text-xs font-black text-slate-500 uppercase text-right">Actions</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        ${Object.entries(store.employees).map(([id, u]) => `
-                            <tr class="hover:bg-slate-50/50 transition-colors">
-                                <td class="p-6">
-                                    <div class="flex items-center gap-4">
-                                        <div class="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center font-black text-slate-600">${u.icon || id[0]}</div>
-                                        <div class="font-bold text-slate-800">${u.name}</div>
-                                    </div>
-                                </td>
-                                <td class="p-6">
-                                    <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase ${u.role === 'admin' ? 'bg-purple-100 text-purple-700' : u.role.includes('l') ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-700'}">
-                                        ${u.role}
-                                    </span>
-                                </td>
-                                <td class="p-6 font-mono text-sm text-slate-500">${id}</td>
-                                <td class="p-6 font-mono text-sm text-orange-600 font-bold">${u.password || '---'}</td>
-                                <td class="p-6 text-right">
-                                    <button onclick="deleteUser('${id}')" class="p-2 text-rose-400 hover:bg-rose-50 rounded-lg transition-all">
-                                        <i data-lucide="trash-2" class="w-5 h-5"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
+                    <tbody id="admin-table-body" class="divide-y divide-slate-100"></tbody>
                 </table>
             </div>
         </div>
     `;
+    renderAdminResults(document.getElementById('admin-table-body'));
+}
+
+function renderAdminResults(tbody) {
+    tbody.innerHTML = Object.entries(store.employees)
+        .filter(([id, u]) => u.name.toLowerCase().includes(searchQuery) || id.toLowerCase().includes(searchQuery))
+        .map(([id, u]) => `
+            <tr class="hover:bg-slate-50/50 transition-colors">
+                <td class="p-6">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center font-black text-slate-600">${u.icon || id[0]}</div>
+                        <div class="font-bold text-slate-800">${u.name}</div>
+                    </div>
+                </td>
+                <td class="p-6">
+                    <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase ${u.role === 'admin' ? 'bg-purple-100 text-purple-700' : u.role.includes('l') ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-700'}">
+                        ${u.role}
+                    </span>
+                </td>
+                <td class="p-6 font-mono text-sm text-slate-500">${id}</td>
+                <td class="p-6 font-mono text-sm text-orange-600 font-bold">${u.password || '---'}</td>
+                <td class="p-6 text-right">
+                    <button onclick="deleteUser('${id}')" class="p-2 text-rose-400 hover:bg-rose-50 rounded-lg transition-all">
+                        <i data-lucide="trash-2" class="w-5 h-5"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    lucide.createIcons();
 }
 
 window.setCoe = (id, field, role, val) => {
@@ -505,7 +593,14 @@ function renderDashboard(container) {
     const stats = getTeamStats();
     container.innerHTML = `
         <div class="animate-fade-in space-y-10">
-            <h1 class="text-3xl font-black text-slate-800">Team Performance Analytics</h1>
+            <div class="flex items-center justify-between">
+                <h1 class="text-3xl font-black text-slate-800">Team Performance Analytics</h1>
+                ${store.currentUser.role === 'admin' ? `
+                    <button onclick="exportToCsv(true)" class="px-6 py-3 bg-slate-900 text-white rounded-2xl font-black flex items-center gap-2 hover:bg-orange-600 transition-all shadow-lg shadow-slate-900/20">
+                        <i data-lucide="database" class="w-5 h-5"></i> Export Detailed Dump
+                    </button>
+                ` : ''}
+            </div>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div class="glass-card p-5 bg-white border-b-4 border-slate-200">
                     <p class="text-[10px] font-black text-slate-500 uppercase">Total Team</p>
@@ -522,56 +617,75 @@ function renderDashboard(container) {
                 <div class="glass-card p-0 h-[80px] overflow-hidden flex items-center justify-center bg-slate-900 border-b-4 border-purple-500">
                     <div class="text-center">
                         <p class="text-[9px] text-slate-400 uppercase font-bold">Total Completion</p>
-                        <p class="text-xl font-black text-white">${Math.round((stats.l2 / stats.total) * 100)}%</p>
+                        <p class="text-xl font-black text-white">${stats.total > 0 ? Math.round((stats.l2 / stats.total) * 100) : 0}%</p>
                     </div>
                 </div>
             </div>
             <div class="flex items-center justify-between border-b pb-4">
-                <h3 class="font-black text-xl text-slate-700">Individual Employee Pipeline</h3>
+                <div class="flex items-center gap-6">
+                    <h3 class="font-black text-xl text-slate-700">Individual Employee Pipeline</h3>
+                    <div class="relative min-w-[250px]">
+                        <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
+                        <input type="text" placeholder="Filter by name..." oninput="handleSearch(this.value)" value="${searchQuery}" 
+                            class="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all">
+                    </div>
+                </div>
                 <div class="flex space-x-2">
                     <span class="px-3 py-1 bg-slate-100 text-[10px] font-bold rounded-full uppercase">Draft: ${stats.draft}</span>
                     <span class="px-3 py-1 bg-indigo-100 text-indigo-600 text-[10px] font-bold rounded-full uppercase">In Review: ${stats.self + stats.l1}</span>
                     <span class="px-3 py-1 bg-emerald-100 text-emerald-600 text-[10px] font-bold rounded-full uppercase">Completed: ${stats.l2}</span>
                 </div>
             </div>
-            <div class="grid grid-cols-1 gap-4">
-                ${Object.values(store.employees).map(e => {
-        const s = calculateScores(e);
-        const isL2 = store.currentUser.role === 'l2';
-        return `
-                        <div class="glass-card p-0 overflow-hidden hover:scale-[1.01] transition-all border border-slate-100 shadow-sm">
-                            <div class="p-6 flex items-center justify-between bg-white">
-                                <div class="flex items-center space-x-4">
-                                    <div class="w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center text-white font-black">${e.icon}</div>
-                                    <div><p class="font-black text-slate-800">${e.name}</p><p class="text-[10px] text-slate-400 uppercase font-black tracking-tighter">${e.designation}</p></div>
-                                </div>
-                                <div class="flex items-center space-x-6">
-                                    ${isL2 ? `
-                                        <div class="flex space-x-4 px-4 border-l">
-                                            <div class="text-center font-bold"><p class="text-[8px] text-slate-400 uppercase">KRA</p><p class="text-sm">${s.kra}</p></div>
-                                            <div class="text-center font-bold"><p class="text-[8px] text-slate-400 uppercase">KSA</p><p class="text-sm">${s.ksa}</p></div>
-                                            <div class="text-center h-full px-3 py-1 bg-slate-900 rounded-lg text-white font-black"><p class="text-[7px] text-slate-500 uppercase">FINAL</p><p class="text-sm">${s.final}</p></div>
-                                        </div>
-                                    ` : ''}
-                                    <button onclick="store.selectedEmployeeId='${e.id}'; navigate('kra')" class="px-5 py-2 bg-indigo-600 text-white rounded-xl text-xs font-black shadow-lg shadow-indigo-100 hover:bg-slate-800">VIEW REVIEW</button>
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-3 text-[10px] font-black text-center border-t">
-                                <div class="py-2 ${getStatus(e) !== 'Draft' ? 'bg-emerald-500 text-white' : 'bg-slate-50 text-slate-300'}">PHASE 1: SELF</div>
-                                <div class="py-2 ${getStatus(e).includes('L1') || getStatus(e).includes('L2') ? 'bg-emerald-500 text-white' : 'bg-slate-50 text-slate-300'} border-l border-white/20">PHASE 2: L1</div>
-                                <div class="py-2 ${getStatus(e).includes('L2') ? 'bg-emerald-500 text-white' : 'bg-slate-50 text-slate-300'} border-l border-white/20">PHASE 3: L2</div>
-                            </div>
-                        </div>
-                    `;
-    }).join('')}
-            </div>
+            <div id="dashboard-list-body" class="grid grid-cols-1 gap-4"></div>
         </div>`;
+    renderDashboardResults(document.getElementById('dashboard-list-body'));
+}
+
+function renderDashboardResults(container) {
+    container.innerHTML = Object.values(store.employees)
+        .filter(e => e.name.toLowerCase().includes(searchQuery) || e.id.toLowerCase().includes(searchQuery))
+        .map(e => {
+            const s = calculateScores(e);
+            const isL2 = store.currentUser.role === 'l2';
+            return `
+                <div class="glass-card p-0 overflow-hidden hover:scale-[1.01] transition-all border border-slate-100 shadow-sm">
+                    <div class="p-6 flex items-center justify-between bg-white">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center text-white font-black">${e.icon}</div>
+                            <div><p class="font-black text-slate-800">${e.name}</p><p class="text-[10px] text-slate-400 uppercase font-black tracking-tighter">${e.designation}</p></div>
+                        </div>
+                        <div class="flex items-center space-x-6">
+                            ${isL2 ? `
+                                <div class="flex space-x-4 px-4 border-l">
+                                    <div class="text-center font-bold"><p class="text-[8px] text-slate-400 uppercase">KRA</p><p class="text-sm">${s.kra}</p></div>
+                                    <div class="text-center font-bold"><p class="text-[8px] text-slate-400 uppercase">KSA</p><p class="text-sm">${s.ksa}</p></div>
+                                    <div class="text-center h-full px-3 py-1 bg-slate-900 rounded-lg text-white font-black"><p class="text-[7px] text-slate-500 uppercase">FINAL</p><p class="text-sm">${s.final}</p></div>
+                                </div>
+                            ` : ''}
+                            <button onclick="store.selectedEmployeeId='${e.id}'; navigate('kra')" class="px-5 py-2 bg-indigo-600 text-white rounded-xl text-xs font-black shadow-lg shadow-indigo-100 hover:bg-slate-800">VIEW REVIEW</button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-3 text-[10px] font-black text-center border-t">
+                        <div class="py-2 ${getStatus(e) !== 'Draft' ? 'bg-emerald-500 text-white' : 'bg-slate-50 text-slate-300'}">PHASE 1: SELF</div>
+                        <div class="py-2 ${getStatus(e).includes('L1') || getStatus(e).includes('L2') ? 'bg-emerald-500 text-white' : 'bg-slate-50 text-slate-300'} border-l border-white/20">PHASE 2: L1</div>
+                        <div class="py-2 ${getStatus(e).includes('L2') ? 'bg-emerald-500 text-white' : 'bg-slate-50 text-slate-300'} border-l border-white/20">PHASE 3: L2</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    lucide.createIcons();
 }
 
 function renderKra(container, emp) {
     container.innerHTML = `
         <div class="animate-fade-in space-y-8">
-            <h1 class="text-2xl font-black text-slate-800">KRA Appraisal: ${emp.name}</h1>
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-black text-slate-800">KRA Appraisal: ${emp.name}</h1>
+                    ${emp.l1_reviewer ? `<p class="text-[10px] text-indigo-600 font-bold mt-1 uppercase">L1 Review by: ${emp.l1_reviewer}</p>` : ''}
+                    ${emp.l2_reviewer ? `<p class="text-[10px] text-emerald-600 font-bold mt-1 uppercase">L2 Finalized by: ${emp.l2_reviewer}</p>` : ''}
+                </div>
+            </div>
             ${(emp.kras || []).map((k, index) => `
                 <div class="glass-card p-10 relative overflow-hidden">
                     <div class="absolute -top-4 -right-4 w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center text-3xl font-black text-slate-200 pointer-events-none">
@@ -766,7 +880,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
 
                 <!-- Unified Login Form -->
-                <div class="space-y-6">
+                <form id="login-form" onsubmit="event.preventDefault(); login('unified', document.getElementById('login-user').value, document.getElementById('login-pass').value);" class="space-y-6">
                     <div class="space-y-4">
                         <div class="relative group">
                             <i data-lucide="user" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-orange-400 transition-colors"></i>
@@ -780,10 +894,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     </div>
                     
-                    <button onclick="login('unified', document.getElementById('login-user').value, document.getElementById('login-pass').value)" 
+                    <button type="submit" 
                         class="w-full py-4 bg-orange-600 hover:bg-orange-700 text-white font-black rounded-2xl shadow-xl shadow-orange-600/20 transition-all transform hover:scale-[1.02] active:scale-95">
                         LOGIN TO PORTAL
                     </button>
+                </form>
                     
                     <div id="emp-preview" class="p-4 bg-white/5 border border-white/10 rounded-2xl hidden items-center space-x-4 animate-fade-in">
                         <div id="emp-preview-icon" class="w-10 h-10 bg-orange-600 rounded-lg flex items-center justify-center font-black text-white text-xs"></div>

@@ -167,21 +167,20 @@
                         class="px-3 py-1 bg-yellow-100 text-yellow-700 text-xs font-bold rounded-full border border-yellow-200 uppercase tracking-wider">Draft</span>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <button id="btn-save"
-                        class="flex items-center space-x-2 px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-all">
+                    <button id="btn-save" onclick="saveDraft()"
+                        class="flex items-center space-x-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all">
                         <i data-lucide="save" class="w-4 h-4"></i>
                         <span>Save Draft</span>
                     </button>
-                    <button id="btn-submit"
-                        class="flex items-center space-x-2 px-5 py-2 text-sm font-bold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 shadow-lg shadow-indigo-600/20 transition-all">
+                    <button id="btn-submit" onclick="submitReview()"
+                        class="flex items-center space-x-2 px-4 py-2 bg-indigo-600 rounded-xl text-sm font-bold text-white hover:bg-slate-800 transition-all shadow-lg shadow-indigo-200">
                         <i data-lucide="send" class="w-4 h-4"></i>
                         <span>Submit Review</span>
-                    </button>
-                    <div id="manager-tools" class="hidden h-8 w-px bg-slate-200 mx-2"></div>
-                    <div id="role-indicator"
-                        class="hidden px-3 py-1 bg-purple-50 text-purple-700 text-[10px] font-black rounded border border-purple-100 uppercase">
-                        Manager Mode</div>
                 </div>
+                <div id="manager-tools" class="hidden h-8 w-px bg-slate-200 mx-2"></div>
+                <div id="role-indicator"
+                    class="hidden px-3 py-1 bg-purple-50 text-purple-700 text-[10px] font-black rounded border border-purple-100 uppercase">
+                    Manager Mode</div>
             </header>
 
             <!-- Scrolled Content Body -->
