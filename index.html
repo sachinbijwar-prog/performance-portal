@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexGen Performance | Enterprise Evaluation System</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#fff7ed',
+                            100: '#ffedd5',
+                            200: '#fed7aa',
+                            300: '#fdba74',
+                            400: '#fb923c',
+                            500: '#f58220', // Smart Orange
+                            600: '#ea580c',
+                            700: '#c2410c',
+                            800: '#9a3412',
+                            900: '#7c2d12',
+                        },
+                        smart: {
+                            orange: '#f58220',
+                            blue: '#0072bc',
+                            bg: '#f8fafc',
+                            sidebar: '#0f172a',
+                            accent: '#f58220'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Custom Style -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="bg-enterprise-bg font-sans text-slate-900 antialiased h-screen overflow-hidden">
+    <!-- Login Screen Overlay -->
+    <div id="login-overlay"
+        class="fixed inset-0 bg-slate-900 z-[100] flex items-center justify-center transition-all duration-700">
+        <div class="absolute inset-0 bg-gradient-to-br from-indigo-900 via-slate-900 to-black opacity-90"></div>
+        <div
+            class="relative glass-card p-12 rounded-[2.5rem] w-full max-w-md border border-white/10 shadow-2xl animate-fade-in text-center">
+            <div
+                class="w-20 h-20 bg-smart-orange rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-orange-500/40">
+                <i data-lucide="shield-check" class="w-10 h-10 text-white"></i>
+            </div>
+            <h1 class="text-3xl font-black text-white mb-2 tracking-tight">Smartavya Analytica</h1>
+            <p class="text-slate-400 mb-10 font-medium">Annual Evaluation - 2026</p>
+
+            <div class="space-y-4">
+                <button onclick="login('employee')"
+                    class="w-full flex items-center justify-between px-6 py-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl transition-all group overflow-hidden relative">
+                    <div class="flex items-center space-x-4">
+                        <div
+                            class="p-3 bg-orange-500/10 text-orange-400 rounded-xl group-hover:bg-orange-500 group-hover:text-white transition-all">
+                            <i data-lucide="user" class="w-6 h-6"></i>
+                        </div>
+                        <div class="text-left">
+                            <span class="block text-white font-bold text-lg">Employee Portal</span>
+                            <span class="text-xs text-slate-500 font-medium tracking-wide uppercase">Self Evaluation Mode</span>
+                        </div>
+                    </div>
+                    <i data-lucide="chevron-right"
+                        class="w-5 h-5 text-slate-600 group-hover:text-white translate-x-4 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all"></i>
+                </button>
+
+                <button onclick="login('manager')"
+                    class="w-full flex items-center justify-between px-6 py-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl transition-all group overflow-hidden relative">
+                    <div class="flex items-center space-x-4">
+                        <div
+                            class="p-3 bg-emerald-500/10 text-emerald-400 rounded-xl group-hover:bg-emerald-500 group-hover:text-white transition-all">
+                            <i data-lucide="users" class="w-6 h-6"></i>
+                        </div>
+                        <div class="text-left">
+                            <span class="block text-white font-bold text-lg">Manager Portal</span>
+                            <span class="text-xs text-slate-500 font-medium tracking-wide uppercase">Review & Approve</span>
+                        </div>
+                    </div>
+                    <i data-lucide="chevron-right"
+                        class="w-5 h-5 text-slate-600 group-hover:text-white translate-x-4 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all"></i>
+                </button>
+            </div>
+
+            <p class="mt-12 text-xs text-slate-600 font-bold tracking-widest uppercase">Safe & Secure Corporate Access</p>
+        </div>
+    </div>
+
+    <div id="app-container" class="flex h-full w-full opacity-0 blur-xl transition-all duration-1000">
+        <!-- Sidebar Navigation -->
+        <aside id="sidebar" class="w-64 bg-smart-sidebar text-white flex flex-col transition-all duration-300">
+            <div class="p-6 flex items-center space-x-3">
+                <div
+                    class="w-10 h-10 bg-smart-orange rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/30">
+                    <i data-lucide="activity" class="w-6 h-6"></i>
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-sm font-black tracking-tighter leading-none">Smartavya</span>
+                    <span class="text-xs font-bold text-orange-500 tracking-widest uppercase">Analytica</span>
+                </div>
+            </div>
+
+            <nav id="sidebar-nav" class="flex-1 mt-4 px-4 space-y-2 overflow-y-auto">
+                <!-- Nav items generated by JS -->
+            </nav>
+
+            <div class="p-4 border-t border-slate-800 space-y-4">
+                <div class="px-3">
+                    <p class="text-[9px] text-slate-500 uppercase font-black mb-2 tracking-widest">Account Security</p>
+                    <button onclick="const p = prompt('Enter new password (min 4 chars):'); if(p) updatePassword(p);" class="w-full py-2 px-3 bg-slate-800/50 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg text-[10px] font-bold transition-all flex items-center justify-between group border border-white/5">
+                        <span>Change Password</span>
+                        <i data-lucide="key" class="w-3 h-3 text-slate-600 group-hover:text-orange-400"></i>
+                    </button>
+                </div>
+                <div class="p-3 bg-slate-800/50 rounded-xl">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs text-slate-400">Evaluation Progress</span>
+                        <span id="progress-text" class="text-xs font-bold text-orange-500">0%</span>
+                    </div>
+                    <div class="w-full bg-slate-700 rounded-full h-1.5">
+                        <div id="progress-bar" class="bg-smart-orange h-1.5 rounded-full transition-all duration-500"
+                            style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-4 flex items-center space-x-3 border-t border-slate-800">
+                <img id="side-user-avatar" src="" class="w-10 h-10 rounded-lg" alt="User">
+                <div class="flex-1 min-w-0">
+                    <p id="user-name" class="text-sm font-semibold truncate"></p>
+                    <p id="user-role-label"
+                        class="text-xs text-slate-400 truncate text-indigo-400 uppercase font-bold tracking-tighter">
+                    </p>
+                </div>
+                <button onclick="logout()" class="p-1.5 text-slate-500 hover:text-rose-400 transition-colors">
+                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 flex flex-col overflow-hidden relative">
+            <!-- Header -->
+            <header
+                class="h-16 border-b border-slate-200 bg-white/80 backdrop-blur-md flex items-center justify-between px-8 sticky top-0 z-10">
+                <div class="flex items-center space-x-4">
+                    <h2 id="view-title" class="text-lg font-bold text-slate-800">Performance Dashboard</h2>
+                    <span id="badge-status"
+                        class="px-3 py-1 bg-yellow-100 text-yellow-700 text-xs font-bold rounded-full border border-yellow-200 uppercase tracking-wider">Draft</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button id="btn-save"
+                        class="flex items-center space-x-2 px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-all">
+                        <i data-lucide="save" class="w-4 h-4"></i>
+                        <span>Save Draft</span>
+                    </button>
+                    <button id="btn-submit"
+                        class="flex items-center space-x-2 px-5 py-2 text-sm font-bold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 shadow-lg shadow-indigo-600/20 transition-all">
+                        <i data-lucide="send" class="w-4 h-4"></i>
+                        <span>Submit Review</span>
+                    </button>
+                    <div id="manager-tools" class="hidden h-8 w-px bg-slate-200 mx-2"></div>
+                    <div id="role-indicator"
+                        class="hidden px-3 py-1 bg-purple-50 text-purple-700 text-[10px] font-black rounded border border-purple-100 uppercase">
+                        Manager Mode</div>
+                </div>
+            </header>
+
+            <!-- Scrolled Content Body -->
+            <div id="content-body" class="flex-1 overflow-y-auto p-8 bg-enterprise-bg scroll-smooth">
+                <!-- Content will be injected here -->
+                <div class="animate-pulse flex flex-col space-y-6">
+                    <div class="h-8 bg-slate-200 rounded w-1/4"></div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="h-32 bg-slate-200 rounded-xl"></div>
+                        <div class="h-32 bg-slate-200 rounded-xl"></div>
+                        <div class="h-32 bg-slate-200 rounded-xl"></div>
+                    </div>
+                    <div class="h-96 bg-slate-200 rounded-xl"></div>
+                </div>
+            </div>
+
+            <!-- AI Notification Toast (Floating) -->
+            <div id="ai-suggestion"
+                class="fixed bottom-8 right-8 max-w-sm bg-indigo-900 text-white p-4 rounded-2xl shadow-2xl border border-indigo-700 transform translate-y-32 transition-transform duration-500 z-50 flex items-start space-x-4">
+                <div class="bg-indigo-500 p-2 rounded-lg">
+                    <i data-lucide="sparkles" class="w-5 h-5 text-indigo-100"></i>
+                </div>
+                <div>
+                    <h4 class="font-bold text-sm mb-1 uppercase tracking-wider text-indigo-300">AI Assistant</h4>
+                    <p id="ai-text" class="text-sm text-indigo-100 leading-relaxed"></p>
+                </div>
+                <button onclick="document.getElementById('ai-suggestion').classList.add('translate-y-96')"
+                    class="text-indigo-400 hover:text-white">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal-kra" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-50">
+        <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden p-8">
+            <h3 class="text-xl font-bold mb-6">Add New KRA</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">KRA Title</label>
+                    <input type="text" id="new-kra-title" placeholder="e.g. Quality Excellence"
+                        class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Weightage (%)</label>
+                    <input type="number" id="new-kra-weight" min="1" max="100"
+                        class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Description</label>
+                    <textarea id="new-kra-desc" rows="3"
+                        class="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"></textarea>
+                </div>
+            </div>
+            <div class="mt-8 flex space-x-3">
+                <button onclick="document.getElementById('modal-kra').classList.add('hidden')"
+                    class="flex-1 py-3 text-slate-600 font-semibold hover:bg-slate-50 rounded-xl transition-all">Cancel</button>
+                <button id="btn-add-kra-confirm"
+                    class="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 transition-all">Create
+                    KRA</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Suggestion / Notification Toast -->
+    <div id="ai-suggestion" class="fixed bottom-8 right-8 z-[100] transform translate-y-32 transition-all duration-500">
+        <div class="glass-card p-6 border-l-4 border-orange-500 max-w-sm flex items-start space-x-4">
+            <div class="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                <i data-lucide="sparkles" class="w-6 h-6 text-orange-600"></i>
+            </div>
+            <div>
+                <p class="text-[10px] font-black text-orange-500 uppercase tracking-[0.2em] mb-1">System Alert</p>
+                <p id="ai-text" class="text-sm text-slate-600 font-medium leading-relaxed">Alert message goes here.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <!-- Unified Script -->
+    <script src="js/performance-app.js"></script>
+    <script>
+        // Init Lucide on load
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+        });
+    </script>
+</body>
+
+</html>
