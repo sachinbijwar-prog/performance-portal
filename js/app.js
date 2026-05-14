@@ -24,7 +24,7 @@ let currentView = 'dashboard';
 function navigate(view) {
     currentView = view;
     render();
-    
+
     // Update active nav item
     navItems.forEach(item => {
         if (item.dataset.view === view) {
@@ -44,13 +44,13 @@ function navigate(view) {
  */
 function render() {
     contentBody.innerHTML = '';
-    
+
     // Update Global UI
     progressBar.style.width = `${store.getCompletionPercentage()}%`;
     progressText.innerText = `${store.getCompletionPercentage()}%`;
     badgeStatus.innerText = store.status;
 
-    switch(currentView) {
+    switch (currentView) {
         case 'dashboard': renderDashboard(); break;
         case 'summary': renderSummary(); break;
         case 'kra': renderKRA(); break;
@@ -58,7 +58,7 @@ function render() {
         case 'final': renderFinal(); break;
         case 'analytics': renderAnalytics(); break;
     }
-    
+
     // Re-init Icons
     lucide.createIcons();
 }
@@ -270,7 +270,7 @@ function renderKRA() {
                         <div class="p-6 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between">
                             <div class="flex items-center space-x-4">
                                 <div class="w-10 h-10 bg-white shadow-sm border border-slate-200 rounded-lg flex items-center justify-center font-bold text-indigo-600">
-                                    ${index+1}
+                                    ${index + 1}
                                 </div>
                                 <div>
                                     <h3 class="font-bold text-slate-800">${kra.title}</h3>
@@ -343,13 +343,13 @@ function renderKRA() {
         </div>
     `;
     contentBody.innerHTML = html;
-    
+
     // Add event listeners for KRA logic
     window.updateKraRating = (id, type, value) => {
         const kra = store.kras.find(k => k.id === id);
         if (kra) {
             kra.self.rating = parseInt(value);
-            showAiSuggestion(`Your projected weighted score for "${kra.title}" is now ${(kra.self.rating * (kra.weightage/100)).toFixed(2)}.`);
+            showAiSuggestion(`Your projected weighted score for "${kra.title}" is now ${(kra.self.rating * (kra.weightage / 100)).toFixed(2)}.`);
             render();
         }
     };
@@ -383,7 +383,7 @@ function renderKSA() {
                         </div>
                         <div class="w-full md:w-auto flex flex-col md:items-end gap-3">
                             <div class="flex items-center space-x-2">
-                                ${[1,2,3,4,5].map(star => `
+                                ${[1, 2, 3, 4, 5].map(star => `
                                     <button 
                                         onclick="updateKsaRating('${cat.key}', ${star})"
                                         class="p-1.5 transition-all transform hover:scale-125 ${store.ksa[cat.key].rating >= star ? 'text-amber-400' : 'text-slate-200'}"
@@ -589,12 +589,12 @@ function renderAnalytics() {
         </div>
     `;
     contentBody.innerHTML = html;
-    
+
     // Init Charts
     setTimeout(() => {
         const ctxBand = document.getElementById('chart-bands');
         const ctxKsa = document.getElementById('chart-ksa');
-        
+
         new Chart(ctxBand, {
             type: 'doughnut',
             data: {
@@ -631,7 +631,7 @@ function renderAnalytics() {
  * Helpers
  */
 function getBandClass(band) {
-    switch(band) {
+    switch (band) {
         case 'Outstanding': return 'bg-emerald-50 text-emerald-600 border border-emerald-100';
         case 'Exceeds Expectations': return 'bg-indigo-50 text-indigo-600 border border-indigo-100';
         case 'Meets Expectations': return 'bg-slate-50 text-slate-600 border border-slate-100';
@@ -687,4 +687,3 @@ document.getElementById('btn-submit').addEventListener('click', () => {
 // Initialization
 navigate('dashboard');
 render();
-</b>

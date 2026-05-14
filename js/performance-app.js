@@ -287,6 +287,11 @@ window.login = (type, id, pass) => {
         userInp.classList.add('border-rose-500', 'ring-rose-500/50');
         return showNote("Invalid Username or ID.");
     }
+
+    if (emp.isRevoked) {
+        userInp.classList.add('border-rose-500', 'ring-rose-500/50');
+        return showNote("Access Revoked: Your account has been suspended.", "error");
+    }
     
     if (emp.password && emp.password !== pass) {
         passInp.classList.add('border-rose-500', 'ring-rose-500/50');
@@ -405,6 +410,12 @@ function render() {
     
     const userNameEl = document.getElementById('user-name');
     if (userNameEl) userNameEl.innerText = store.currentUser.name;
+
+    const avatarEl = document.getElementById('user-avatar-initials');
+    if (avatarEl) {
+        const initials = store.currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase();
+        avatarEl.innerText = initials;
+    }
 
     if (currentView === 'dashboard') renderDashboard(body);
     else if (currentView === 'kra') renderKra(body, emp);
@@ -536,6 +547,7 @@ function renderAdmin(container) {
                         <tr>
                             <th class="p-6 text-xs font-black text-slate-500 uppercase">Resource</th>
                             <th class="p-6 text-xs font-black text-slate-500 uppercase">Role</th>
+                            <th class="p-6 text-xs font-black text-slate-500 uppercase">Status</th>
                             <th class="p-6 text-xs font-black text-slate-500 uppercase">Employee ID</th>
                             <th class="p-6 text-xs font-black text-slate-500 uppercase">Temp Password</th>
                             <th class="p-6 text-xs font-black text-slate-500 uppercase text-right">Actions</th>
@@ -565,10 +577,18 @@ function renderAdminResults(tbody) {
                         ${u.role}
                     </span>
                 </td>
+                <td class="p-6">
+                    <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase ${u.isRevoked ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}">
+                        ${u.isRevoked ? 'Revoked' : 'Active'}
+                    </span>
+                </td>
                 <td class="p-6 font-mono text-sm text-slate-500">${id}</td>
                 <td class="p-6 font-mono text-sm text-orange-600 font-bold">${u.password || '---'}</td>
-                <td class="p-6 text-right">
-                    <button onclick="deleteUser('${id}')" class="p-2 text-rose-400 hover:bg-rose-50 rounded-lg transition-all">
+                <td class="p-6 text-right flex items-center justify-end space-x-2">
+                    <button onclick="toggleAccess('${id}')" title="${u.isRevoked ? 'Grant Access' : 'Revoke Access'}" class="p-2 ${u.isRevoked ? 'text-emerald-500 hover:bg-emerald-50' : 'text-orange-400 hover:bg-orange-50'} rounded-lg transition-all">
+                        <i data-lucide="${u.isRevoked ? 'unlock' : 'lock'}" class="w-5 h-5"></i>
+                    </button>
+                    <button onclick="deleteUser('${id}')" title="Delete User" class="p-2 text-rose-400 hover:bg-rose-50 rounded-lg transition-all">
                         <i data-lucide="trash-2" class="w-5 h-5"></i>
                     </button>
                 </td>
@@ -576,6 +596,16 @@ function renderAdminResults(tbody) {
         `).join('');
     lucide.createIcons();
 }
+
+window.toggleAccess = (id) => {
+    if (id === 'admin') return showNote("Cannot revoke Administrator access.", "error");
+    const u = store.employees[id];
+    u.isRevoked = !u.isRevoked;
+    save();
+    const tbody = document.getElementById('admin-table-body');
+    if (tbody) renderAdminResults(tbody);
+    showNote(`Access ${u.isRevoked ? 'REVOKED' : 'GRANTED'} for ${u.name}`);
+};
 
 window.setCoe = (id, field, role, val) => {
     const parsedVal = (field === 'rating') ? parseInt(val) : val;
