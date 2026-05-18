@@ -345,6 +345,21 @@ window.setKsa = (key, field, role, val) => {
 };
 
 let currentView = 'dashboard';
+window.toggleSidebar = () => {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    if (!sidebar) return;
+    if (sidebar.classList.contains('-translate-x-full')) {
+        sidebar.classList.remove('-translate-x-full');
+        sidebar.classList.add('translate-x-0');
+        if (overlay) overlay.classList.remove('hidden');
+    } else {
+        sidebar.classList.remove('translate-x-0');
+        sidebar.classList.add('-translate-x-full');
+        if (overlay) overlay.classList.add('hidden');
+    }
+};
+
 window.navigate = (v) => { 
     currentView = v; 
     const sessionData = localStorage.getItem('sa_eval_session');
@@ -352,6 +367,14 @@ window.navigate = (v) => {
         const session = JSON.parse(sessionData);
         session.view = v;
         localStorage.setItem('sa_eval_session', JSON.stringify(session));
+    }
+    // Auto-close sidebar on mobile after clicking navigation
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    if (sidebar && sidebar.classList.contains('translate-x-0') && window.innerWidth < 768) {
+        sidebar.classList.remove('translate-x-0');
+        sidebar.classList.add('-translate-x-full');
+        if (overlay) overlay.classList.add('hidden');
     }
     renderSidebar(); 
     render(); 
@@ -501,47 +524,49 @@ window.addUser = (id, name, role, pass) => {
 
 function renderAdmin(container) {
     container.innerHTML = `
-        <div class="animate-fade-in space-y-10">
-            <div class="flex items-center justify-between">
+        <div class="animate-fade-in space-y-6 md:space-y-10">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 md:gap-6">
                 <div>
-                    <h1 class="text-3xl font-black text-slate-800">User Management</h1>
-                    <p class="text-slate-500 font-bold text-sm uppercase mt-1">Admin Control Center</p>
+                    <h1 class="text-2xl md:text-3xl font-black text-slate-800">User Management</h1>
+                    <p class="text-slate-500 font-bold text-xs md:text-sm uppercase mt-1">Admin Control Center</p>
                 </div>
-                <div class="flex gap-4">
-                    <div class="relative min-w-[300px]">
+                <div class="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
+                    <div class="relative w-full sm:min-w-[250px]">
                         <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
                         <input type="text" placeholder="Search resources..." oninput="handleSearch(this.value)" value="${searchQuery}" 
                             class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-orange-500/20 outline-none transition-all">
                     </div>
-                    <button onclick="exportToCsv()" class="px-6 py-3 bg-slate-100 text-slate-700 rounded-2xl font-black flex items-center gap-2 hover:bg-slate-200 transition-all">
-                        <i data-lucide="download" class="w-5 h-5"></i> Export CSV
-                    </button>
-                    <button onclick="document.getElementById('add-user-modal').classList.toggle('hidden')" class="px-6 py-3 bg-smart-orange text-white rounded-2xl font-black shadow-lg shadow-orange-500/20 flex items-center gap-2">
-                        <i data-lucide="user-plus" class="w-5 h-5"></i> Add New Resource
-                    </button>
+                    <div class="flex gap-2 w-full sm:w-auto">
+                        <button onclick="exportToCsv()" class="flex-1 sm:flex-initial px-4 py-3 bg-slate-100 text-slate-700 rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-slate-200 transition-all text-xs md:text-sm">
+                            <i data-lucide="download" class="w-4 h-4"></i> Export CSV
+                        </button>
+                        <button onclick="document.getElementById('add-user-modal').classList.toggle('hidden')" class="flex-1 sm:flex-initial px-4 py-3 bg-smart-orange text-white rounded-2xl font-black shadow-lg shadow-orange-500/20 flex items-center justify-center gap-2 text-xs md:text-sm">
+                            <i data-lucide="user-plus" class="w-4 h-4"></i> Add Resource
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <div id="add-user-modal" class="hidden glass-card p-10 space-y-6 border-2 border-orange-100">
-                <h3 class="text-xl font-black">Register New Member</h3>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <input id="new-id" type="text" placeholder="Employee ID (emp-151)" class="p-4 border rounded-2xl">
-                    <input id="new-name" type="text" placeholder="Full Name" class="p-4 border rounded-2xl">
-                    <select id="new-role" class="p-4 border rounded-2xl font-bold">
+            <div id="add-user-modal" class="hidden glass-card p-6 md:p-10 space-y-6 border-2 border-orange-100">
+                <h3 class="text-lg md:text-xl font-black">Register New Member</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+                    <input id="new-id" type="text" placeholder="Employee ID (emp-151)" class="p-4 border rounded-2xl text-sm">
+                    <input id="new-name" type="text" placeholder="Full Name" class="p-4 border rounded-2xl text-sm">
+                    <select id="new-role" class="p-4 border rounded-2xl font-bold text-sm">
                         <option value="employee">Employee</option>
                         <option value="l1">L1 Manager</option>
                         <option value="l2">L2 Manager</option>
                         <option value="admin">Admin</option>
                     </select>
-                    <input id="new-pass" type="text" placeholder="Temp Password" class="p-4 border rounded-2xl">
+                    <input id="new-pass" type="text" placeholder="Temp Password" class="p-4 border rounded-2xl text-sm">
                 </div>
-                <div class="flex justify-end gap-4">
-                    <button onclick="document.getElementById('add-user-modal').classList.add('hidden')" class="px-6 py-3 text-slate-500 font-bold">Cancel</button>
-                    <button onclick="addUser(document.getElementById('new-id').value, document.getElementById('new-name').value, document.getElementById('new-role').value, document.getElementById('new-pass').value)" class="px-8 py-3 bg-slate-900 text-white rounded-2xl font-black">Create User</button>
+                <div class="flex justify-end gap-3 md:gap-4">
+                    <button onclick="document.getElementById('add-user-modal').classList.add('hidden')" class="px-5 py-2.5 text-slate-500 font-bold text-sm">Cancel</button>
+                    <button onclick="addUser(document.getElementById('new-id').value, document.getElementById('new-name').value, document.getElementById('new-role').value, document.getElementById('new-pass').value)" class="px-6 py-2.5 bg-slate-900 text-white rounded-2xl font-black text-sm">Create User</button>
                 </div>
             </div>
 
-            <div class="glass-card overflow-hidden">
+            <div class="glass-card overflow-hidden border border-slate-100 shadow-sm">
                 <table class="w-full text-left">
                     <thead class="bg-slate-50 border-b">
                         <tr>
@@ -566,25 +591,25 @@ function renderAdminResults(tbody) {
         .filter(([id, u]) => u.name.toLowerCase().includes(searchQuery) || id.toLowerCase().includes(searchQuery))
         .map(([id, u]) => `
             <tr class="hover:bg-slate-50/50 transition-colors">
-                <td class="p-6">
-                    <div class="flex items-center gap-4">
+                <td class="p-6" data-label="Resource">
+                    <div class="flex items-center justify-end md:justify-start gap-4">
                         <div class="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center font-black text-slate-600">${u.icon || id[0]}</div>
                         <div class="font-bold text-slate-800">${u.name}</div>
                     </div>
                 </td>
-                <td class="p-6">
+                <td class="p-6" data-label="Role">
                     <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase ${u.role === 'admin' ? 'bg-purple-100 text-purple-700' : u.role.includes('l') ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-700'}">
                         ${u.role}
                     </span>
                 </td>
-                <td class="p-6">
+                <td class="p-6" data-label="Status">
                     <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase ${u.isRevoked ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}">
                         ${u.isRevoked ? 'Revoked' : 'Active'}
                     </span>
                 </td>
-                <td class="p-6 font-mono text-sm text-slate-500">${id}</td>
-                <td class="p-6 font-mono text-sm text-orange-600 font-bold">${u.password || '---'}</td>
-                <td class="p-6 text-right flex items-center justify-end space-x-2">
+                <td class="p-6 font-mono text-sm text-slate-500" data-label="Employee ID">${id}</td>
+                <td class="p-6 font-mono text-sm text-orange-600 font-bold" data-label="Temp Password">${u.password || '---'}</td>
+                <td class="p-6 text-right flex items-center justify-end gap-2" data-label="Actions">
                     <button onclick="toggleAccess('${id}')" title="${u.isRevoked ? 'Grant Access' : 'Revoke Access'}" class="p-2 ${u.isRevoked ? 'text-emerald-500 hover:bg-emerald-50' : 'text-orange-400 hover:bg-orange-50'} rounded-lg transition-all">
                         <i data-lucide="${u.isRevoked ? 'unlock' : 'lock'}" class="w-5 h-5"></i>
                     </button>
@@ -622,48 +647,46 @@ window.setCertifications = (id, field, role, val) => {
 function renderDashboard(container) {
     const stats = getTeamStats();
     container.innerHTML = `
-        <div class="animate-fade-in space-y-10">
-            <div class="flex items-center justify-between">
-                <h1 class="text-3xl font-black text-slate-800">Team Performance Analytics</h1>
+        <div class="animate-fade-in space-y-6 md:space-y-10">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <h1 class="text-2xl md:text-3xl font-black text-slate-800">Team Performance Analytics</h1>
                 ${store.currentUser.role === 'admin' ? `
-                    <button onclick="exportToCsv(true)" class="px-6 py-3 bg-slate-900 text-white rounded-2xl font-black flex items-center gap-2 hover:bg-orange-600 transition-all shadow-lg shadow-slate-900/20">
-                        <i data-lucide="database" class="w-5 h-5"></i> Export Detailed Dump
+                    <button onclick="exportToCsv(true)" class="px-5 py-3 bg-slate-900 text-white rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-orange-600 transition-all shadow-lg shadow-slate-900/20 text-xs md:text-sm">
+                        <i data-lucide="database" class="w-4 h-4"></i> Export Detailed Dump
                     </button>
                 ` : ''}
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
                 <div class="glass-card p-5 bg-white border-b-4 border-slate-200">
                     <p class="text-[10px] font-black text-slate-500 uppercase">Total Team</p>
-                    <p class="text-3xl font-black text-slate-800">${stats.total}</p>
+                    <p class="text-2xl md:text-3xl font-black text-slate-800 mt-1">${stats.total}</p>
                 </div>
                 <div class="glass-card p-5 bg-indigo-50 border-b-4 border-indigo-400">
                     <p class="text-[10px] font-black text-indigo-500 uppercase">Self-Eval Done</p>
-                    <p class="text-3xl font-black text-indigo-700">${stats.self + stats.l1 + stats.l2}</p>
+                    <p class="text-2xl md:text-3xl font-black text-indigo-700 mt-1">${stats.self + stats.l1 + stats.l2}</p>
                 </div>
                 <div class="glass-card p-5 bg-emerald-50 border-b-4 border-emerald-400">
                     <p class="text-[10px] font-black text-emerald-500 uppercase">L2 Finalized</p>
-                    <p class="text-3xl font-black text-emerald-700">${stats.l2}</p>
+                    <p class="text-2xl md:text-3xl font-black text-emerald-700 mt-1">${stats.l2}</p>
                 </div>
-                <div class="glass-card p-0 h-[80px] overflow-hidden flex items-center justify-center bg-slate-900 border-b-4 border-purple-500">
-                    <div class="text-center">
-                        <p class="text-[9px] text-slate-400 uppercase font-bold">Total Completion</p>
-                        <p class="text-xl font-black text-white">${stats.total > 0 ? Math.round((stats.l2 / stats.total) * 100) : 0}%</p>
-                    </div>
+                <div class="glass-card p-5 flex flex-col items-center justify-center bg-slate-900 border-b-4 border-purple-500 min-h-[88px]">
+                    <p class="text-[9px] text-slate-400 uppercase font-bold text-center">Total Completion</p>
+                    <p class="text-xl md:text-2xl font-black text-white mt-1 text-center">${stats.total > 0 ? Math.round((stats.l2 / stats.total) * 100) : 0}%</p>
                 </div>
             </div>
-            <div class="flex items-center justify-between border-b pb-4">
-                <div class="flex items-center gap-6">
-                    <h3 class="font-black text-xl text-slate-700">Individual Employee Pipeline</h3>
-                    <div class="relative min-w-[250px]">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 border-b pb-4">
+                <div class="flex flex-col sm:flex-row sm:items-center gap-4 w-full lg:w-auto">
+                    <h3 class="font-black text-lg md:text-xl text-slate-700 whitespace-nowrap">Individual Employee Pipeline</h3>
+                    <div class="relative w-full sm:w-[250px]">
                         <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
                         <input type="text" placeholder="Filter by name..." oninput="handleSearch(this.value)" value="${searchQuery}" 
                             class="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all">
                     </div>
                 </div>
-                <div class="flex space-x-2">
-                    <span class="px-3 py-1 bg-slate-100 text-[10px] font-bold rounded-full uppercase">Draft: ${stats.draft}</span>
-                    <span class="px-3 py-1 bg-indigo-100 text-indigo-600 text-[10px] font-bold rounded-full uppercase">In Review: ${stats.self + stats.l1}</span>
-                    <span class="px-3 py-1 bg-emerald-100 text-emerald-600 text-[10px] font-bold rounded-full uppercase">Completed: ${stats.l2}</span>
+                <div class="flex flex-wrap gap-2">
+                    <span class="px-2.5 py-1 bg-slate-100 text-[9px] sm:text-[10px] font-bold rounded-full uppercase">Draft: ${stats.draft}</span>
+                    <span class="px-2.5 py-1 bg-indigo-100 text-indigo-600 text-[9px] sm:text-[10px] font-bold rounded-full uppercase">In Review: ${stats.self + stats.l1}</span>
+                    <span class="px-2.5 py-1 bg-emerald-100 text-emerald-600 text-[9px] sm:text-[10px] font-bold rounded-full uppercase">Completed: ${stats.l2}</span>
                 </div>
             </div>
             <div id="dashboard-list-body" class="grid grid-cols-1 gap-4"></div>
@@ -678,24 +701,27 @@ function renderDashboardResults(container) {
             const s = calculateScores(e);
             const isL2 = store.currentUser.role === 'l2';
             return `
-                <div class="glass-card p-0 overflow-hidden hover:scale-[1.01] transition-all border border-slate-100 shadow-sm">
-                    <div class="p-6 flex items-center justify-between bg-white">
+                <div class="glass-card p-0 overflow-hidden hover:scale-[1.01] transition-all border border-slate-100 shadow-sm animate-fade-in">
+                    <div class="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white">
                         <div class="flex items-center space-x-4">
-                            <div class="w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center text-white font-black">${e.icon}</div>
-                            <div><p class="font-black text-slate-800">${e.name}</p><p class="text-[10px] text-slate-400 uppercase font-black tracking-tighter">${e.designation}</p></div>
+                            <div class="w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center text-white font-black flex-shrink-0">${e.icon}</div>
+                            <div class="min-w-0">
+                                <p class="font-black text-slate-800 truncate">${e.name}</p>
+                                <p class="text-[10px] text-slate-400 uppercase font-black tracking-tighter truncate">${e.designation}</p>
+                            </div>
                         </div>
-                        <div class="flex items-center space-x-6">
+                        <div class="flex flex-wrap sm:flex-nowrap items-center justify-between sm:justify-end gap-4 sm:space-x-6">
                             ${isL2 ? `
-                                <div class="flex space-x-4 px-4 border-l">
+                                <div class="flex space-x-4 px-4 sm:border-l border-slate-200">
                                     <div class="text-center font-bold"><p class="text-[8px] text-slate-400 uppercase">KRA</p><p class="text-sm">${s.kra}</p></div>
                                     <div class="text-center font-bold"><p class="text-[8px] text-slate-400 uppercase">KSA</p><p class="text-sm">${s.ksa}</p></div>
                                     <div class="text-center h-full px-3 py-1 bg-slate-900 rounded-lg text-white font-black"><p class="text-[7px] text-slate-500 uppercase">FINAL</p><p class="text-sm">${s.final}</p></div>
                                 </div>
                             ` : ''}
-                            <button onclick="store.selectedEmployeeId='${e.id}'; navigate('kra')" class="px-5 py-2 bg-indigo-600 text-white rounded-xl text-xs font-black shadow-lg shadow-indigo-100 hover:bg-slate-800">VIEW REVIEW</button>
+                            <button onclick="store.selectedEmployeeId='${e.id}'; navigate('kra')" class="w-full sm:w-auto px-5 py-2 bg-indigo-600 text-white rounded-xl text-xs font-black shadow-lg shadow-indigo-100 hover:bg-slate-800 text-center transition-all">VIEW REVIEW</button>
                         </div>
                     </div>
-                    <div class="grid grid-cols-3 text-[10px] font-black text-center border-t">
+                    <div class="grid grid-cols-3 text-[9px] sm:text-[10px] font-black text-center border-t">
                         <div class="py-2 ${getStatus(e) !== 'Draft' ? 'bg-emerald-500 text-white' : 'bg-slate-50 text-slate-300'}">PHASE 1: SELF</div>
                         <div class="py-2 ${getStatus(e).includes('L1') || getStatus(e).includes('L2') ? 'bg-emerald-500 text-white' : 'bg-slate-50 text-slate-300'} border-l border-white/20">PHASE 2: L1</div>
                         <div class="py-2 ${getStatus(e).includes('L2') ? 'bg-emerald-500 text-white' : 'bg-slate-50 text-slate-300'} border-l border-white/20">PHASE 3: L2</div>
@@ -708,46 +734,46 @@ function renderDashboardResults(container) {
 
 function renderKra(container, emp) {
     container.innerHTML = `
-        <div class="animate-fade-in space-y-8">
+        <div class="animate-fade-in space-y-6 md:space-y-8">
             <div class="flex items-center justify-between">
                 <div>
-                    <h1 class="text-2xl font-black text-slate-800">KRA Appraisal: ${emp.name}</h1>
+                    <h1 class="text-xl md:text-2xl font-black text-slate-800">KRA Appraisal: ${emp.name}</h1>
                     ${emp.l1_reviewer ? `<p class="text-[10px] text-indigo-600 font-bold mt-1 uppercase">L1 Review by: ${emp.l1_reviewer}</p>` : ''}
                     ${emp.l2_reviewer ? `<p class="text-[10px] text-emerald-600 font-bold mt-1 uppercase">L2 Finalized by: ${emp.l2_reviewer}</p>` : ''}
                 </div>
             </div>
             ${(emp.kras || []).map((k, index) => `
-                <div class="glass-card p-10 relative overflow-hidden">
+                <div class="glass-card p-6 md:p-10 relative overflow-hidden">
                     <div class="absolute -top-4 -right-4 w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center text-3xl font-black text-slate-200 pointer-events-none">
                         ${String(index + 1).padStart(2, '0')}
                     </div>
                     <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-100 relative z-10">
                         <div>
-                            <h3 class="text-lg font-black text-slate-800">${k.title}</h3>
+                            <h3 class="text-base md:text-lg font-black text-slate-800">${k.title}</h3>
                             <p class="text-[10px] text-slate-500 uppercase font-black tracking-widest mt-1">Key Result Area</p>
                         </div>
                         <div class="px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-xl font-black text-xs">
                             ${k.weightage}% Weight
                         </div>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 relative z-10">
                     <div class="space-y-4">
                         <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Self Evaluation</label>
-                        <select ${store.currentUser.role !== 'employee' ? 'disabled' : ''} onchange="setKra('${k.id}', 'rating', 'self', this.value)" class="w-full p-4 border rounded-2xl font-black text-indigo-700">
+                        <select ${store.currentUser.role !== 'employee' ? 'disabled' : ''} onchange="setKra('${k.id}', 'rating', 'self', this.value)" class="w-full p-4 border rounded-2xl font-black text-indigo-700 text-sm">
                             ${[0, 1, 2, 3, 4, 5].map(v => `<option value="${v}" ${k.self.rating == v ? 'selected' : ''}>${v || 'Rate'}</option>`).join('')}
                         </select>
                         <textarea ${store.currentUser.role !== 'employee' ? 'disabled' : ''} onblur="setKra('${k.id}', 'justification', 'self', this.value)" class="w-full p-4 border rounded-2xl text-sm h-32 bg-slate-50/10">${k.self.justification}</textarea>
                     </div>
                     <div class="space-y-4 ${store.currentUser.role === 'employee' ? 'opacity-40 pointer-events-none' : ''}">
                         <label class="text-[10px] font-black text-indigo-500 uppercase tracking-widest">L1 Manager</label>
-                        <select ${store.currentUser.role !== 'l1' ? 'disabled' : ''} onchange="setKra('${k.id}', 'rating', 'l1', this.value)" class="w-full p-4 border border-indigo-100 rounded-2xl font-black bg-indigo-50/10">
+                        <select ${store.currentUser.role !== 'l1' ? 'disabled' : ''} onchange="setKra('${k.id}', 'rating', 'l1', this.value)" class="w-full p-4 border border-indigo-100 rounded-2xl font-black bg-indigo-50/10 text-sm">
                             ${[0, 1, 2, 3, 4, 5].map(v => `<option value="${v}" ${k.l1.rating == v ? 'selected' : ''}>${v || 'Rate'}</option>`).join('')}
                         </select>
                         <textarea ${store.currentUser.role !== 'l1' ? 'disabled' : ''} onblur="setKra('${k.id}', 'comments', 'l1', this.value)" class="w-full p-4 border border-indigo-50 rounded-2xl text-sm h-32 bg-indigo-50/10">${k.l1.comments}</textarea>
                     </div>
                     <div class="space-y-4 ${store.currentUser.role !== 'l2' ? 'opacity-40 pointer-events-none' : ''}">
                         <label class="text-[10px] font-black text-emerald-500 uppercase tracking-widest">L2 Final</label>
-                        <select onchange="setKra('${k.id}', 'rating', 'l2', this.value)" class="w-full p-4 border border-emerald-100 rounded-2xl font-black bg-emerald-50/10 text-emerald-700">
+                        <select onchange="setKra('${k.id}', 'rating', 'l2', this.value)" class="w-full p-4 border border-emerald-100 rounded-2xl font-black bg-emerald-50/10 text-emerald-700 text-sm">
                             ${[0, 1, 2, 3, 4, 5].map(v => `<option value="${v}" ${k.l2.rating == v ? 'selected' : ''}>${v || 'Rate'}</option>`).join('')}
                         </select>
                         <div class="p-6 bg-emerald-50/50 border border-emerald-100 rounded-2xl text-[10px] text-emerald-700/60 font-bold italic">L2 provides ultimate sign-off. Score is final.</div>
@@ -755,20 +781,20 @@ function renderKra(container, emp) {
                 </div>
             `).join('')}
 
-            <h2 class="text-lg font-black text-slate-800 flex items-center gap-3 mt-16 mb-4">
+            <h2 class="text-base md:text-lg font-black text-slate-800 flex items-center gap-3 mt-10 md:mt-16 mb-4">
                 <i data-lucide="award" class="text-indigo-600"></i> CoE Contributions
             </h2>
             <div class="space-y-6">
             ${(emp.coe || []).map((c, idx) => `
-                <div class="glass-card p-10 relative overflow-hidden">
+                <div class="glass-card p-6 md:p-10 relative overflow-hidden">
                     <div class="absolute -top-4 -right-4 w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-xl font-black text-slate-200 pointer-events-none">
                         ${String(idx + 1).padStart(2, '0')}
                     </div>
                     <div class="mb-6 pb-4 border-b border-slate-100 relative z-10">
-                        <h3 class="text-lg font-black text-slate-800">${c.title}</h3>
+                        <h3 class="text-base md:text-lg font-black text-slate-800">${c.title}</h3>
                         <p class="text-[10px] text-slate-500 uppercase font-black tracking-widest mt-1">Center of Excellence</p>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 relative z-10">
                         <div class="space-y-4">
                             <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Self Declaration</label>
                             <input type="text" placeholder="What did you contribute?" ${store.currentUser.role !== 'employee' ? 'disabled' : ''} onblur="setCoe('${c.id}', 'description', 'self', this.value)" value="${c.self.description}" class="w-full p-4 border rounded-2xl text-sm bg-slate-50/10 focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
@@ -776,7 +802,7 @@ function renderKra(container, emp) {
                         </div>
                         <div class="space-y-4 ${store.currentUser.role === 'employee' ? 'opacity-40 pointer-events-none' : ''}">
                             <label class="text-[10px] font-black text-indigo-500 uppercase tracking-widest">Manager Assessment</label>
-                            <select ${store.currentUser.role !== 'l1' ? 'disabled' : ''} onchange="setCoe('${c.id}', 'rating', 'l1', this.value)" class="w-full p-4 border border-indigo-100 rounded-2xl font-black bg-indigo-50/10 text-indigo-700">
+                            <select ${store.currentUser.role !== 'l1' ? 'disabled' : ''} onchange="setCoe('${c.id}', 'rating', 'l1', this.value)" class="w-full p-4 border border-indigo-100 rounded-2xl font-black bg-indigo-50/10 text-indigo-700 text-sm">
                                 ${[0, 1, 2, 3, 4, 5].map(v => `<option value="${v}" ${c.l1.rating == v ? 'selected' : ''}>${v || 'Rate Contribution'}</option>`).join('')}
                             </select>
                             <textarea ${store.currentUser.role !== 'l1' ? 'disabled' : ''} onblur="setCoe('${c.id}', 'comments', 'l1', this.value)" placeholder="Manager comments..." class="w-full p-4 border border-indigo-50 rounded-2xl text-sm h-24 bg-indigo-50/10 focus:ring-2 focus:ring-indigo-500 outline-none transition-all">${c.l1.comments}</textarea>
@@ -786,21 +812,21 @@ function renderKra(container, emp) {
             `).join('')}
             </div>
 
-            <div class="h-px bg-slate-200 my-16"></div>
-            <h2 class="text-xl font-black text-slate-800 flex items-center gap-3 mb-6">
+            <div class="h-px bg-slate-200 my-10 md:my-16"></div>
+            <h2 class="text-lg md:text-xl font-black text-slate-800 flex items-center gap-3 mb-6">
                 <i data-lucide="shield-check" class="text-emerald-600"></i> Certifications
             </h2>
             <div class="space-y-8">
             ${(emp.certifications || []).map((c, idx) => `
-                <div class="glass-card p-12 relative overflow-hidden">
+                <div class="glass-card p-6 md:p-12 relative overflow-hidden">
                     <div class="absolute -top-4 -right-4 w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center text-2xl font-black text-slate-200 pointer-events-none">
                         ${String(idx + 1).padStart(2, '0')}
                     </div>
                     <div class="mb-8 pb-4 border-b border-slate-100 relative z-10">
-                        <h3 class="text-xl font-black text-slate-800">${c.title}</h3>
+                        <h3 class="text-base md:text-lg font-black text-slate-800">${c.title}</h3>
                         <p class="text-[10px] text-slate-400 uppercase font-black tracking-widest mt-1">Professional Recognition</p>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-10 relative z-10">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-10 relative z-10">
                         <div class="space-y-4">
                             <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Certification Details</label>
                             <input type="text" placeholder="Exact Name of Certificate" ${store.currentUser.role !== 'employee' ? 'disabled' : ''} onblur="setCertifications('${c.id}', 'name', 'self', this.value)" value="${c.self.name}" class="w-full p-4 border rounded-2xl text-sm bg-slate-50/10 focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
@@ -812,7 +838,7 @@ function renderKra(container, emp) {
                         <div class="space-y-4 ${store.currentUser.role === 'employee' ? 'opacity-40 pointer-events-none' : ''}">
                             <label class="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Verification & Approval</label>
                             <div class="flex gap-4">
-                                <select ${store.currentUser.role !== 'l1' ? 'disabled' : ''} onchange="setCertifications('${c.id}', 'rating', 'l1', this.value)" class="flex-1 p-4 border border-emerald-100 rounded-2xl font-black bg-emerald-50/10 text-emerald-700">
+                                <select ${store.currentUser.role !== 'l1' ? 'disabled' : ''} onchange="setCertifications('${c.id}', 'rating', 'l1', this.value)" class="flex-1 p-4 border border-emerald-100 rounded-2xl font-black bg-emerald-50/10 text-emerald-700 text-sm">
                                     <option value="0" ${c.l1.rating == 0 ? 'selected' : ''}>Pending Verification</option>
                                     <option value="5" ${c.l1.rating == 5 ? 'selected' : ''}>Verified & Approved</option>
                                     <option value="1" ${c.l1.rating == 1 ? 'selected' : ''}>Rejected / Incomplete</option>
@@ -830,35 +856,35 @@ function renderKra(container, emp) {
 
 function renderKsa(container, emp) {
     container.innerHTML = `
-        <div class="animate-fade-in space-y-8">
-            <h1 class="text-2xl font-black text-slate-800">KSA Assessment: ${emp.name}</h1>
+        <div class="animate-fade-in space-y-6 md:space-y-8">
+            <h1 class="text-xl md:text-2xl font-black text-slate-800">KSA Assessment: ${emp.name}</h1>
             ${Object.entries(emp.ksa || {}).map(([key, data], idx) => `
-                <div class="glass-card p-10 relative overflow-hidden">
+                <div class="glass-card p-6 md:p-10 relative overflow-hidden">
                     <div class="absolute -top-4 -right-4 w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center text-3xl font-black text-slate-200 pointer-events-none">
                         ${String(idx + 1).padStart(2, '0')}
                     </div>
                     <div class="mb-6 pb-4 border-b border-slate-100 relative z-10">
-                        <h3 class="text-lg font-black text-slate-800">${data.label}</h3>
+                        <h3 class="text-base md:text-lg font-black text-slate-800">${data.label}</h3>
                         <p class="text-[10px] text-slate-500 uppercase font-black tracking-widest mt-1">Core Competency</p>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 relative z-10">
                         <div class="space-y-4">
                             <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Self Evaluation</label>
-                            <select ${store.currentUser.role !== 'employee' ? 'disabled' : ''} onchange="setKsa('${key}', 'rating', 'self', this.value)" class="w-full p-4 border rounded-2xl font-black text-indigo-700">
+                            <select ${store.currentUser.role !== 'employee' ? 'disabled' : ''} onchange="setKsa('${key}', 'rating', 'self', this.value)" class="w-full p-4 border rounded-2xl font-black text-indigo-700 text-sm">
                                 ${[0, 1, 2, 3, 4, 5].map(v => `<option value="${v}" ${data.self.rating == v ? 'selected' : ''}>${v || 'Rate'}</option>`).join('')}
                             </select>
                             <textarea ${store.currentUser.role !== 'employee' ? 'disabled' : ''} onblur="setKsa('${key}', 'justification', 'self', this.value)" class="w-full p-4 border rounded-2xl text-sm h-32 bg-slate-50/10">${data.self.justification}</textarea>
                         </div>
                         <div class="space-y-4 ${store.currentUser.role === 'employee' ? 'opacity-40 pointer-events-none' : ''}">
                             <label class="text-[10px] font-black text-indigo-500 uppercase tracking-widest">L1 Feedback</label>
-                            <select ${store.currentUser.role !== 'l1' ? 'disabled' : ''} onchange="setKsa('${key}', 'rating', 'l1', this.value)" class="w-full p-4 border border-indigo-100 rounded-2xl font-black bg-indigo-50/10">
+                            <select ${store.currentUser.role !== 'l1' ? 'disabled' : ''} onchange="setKsa('${key}', 'rating', 'l1', this.value)" class="w-full p-4 border border-indigo-100 rounded-2xl font-black bg-indigo-50/10 text-sm">
                                 ${[0, 1, 2, 3, 4, 5].map(v => `<option value="${v}" ${data.l1.rating == v ? 'selected' : ''}>${v || 'Rate'}</option>`).join('')}
                             </select>
                             <textarea ${store.currentUser.role !== 'l1' ? 'disabled' : ''} onblur="setKsa('${key}', 'comments', 'l1', this.value)" class="w-full p-4 border border-indigo-100 rounded-2xl text-sm h-32 bg-indigo-50/10">${data.l1.comments}</textarea>
                         </div>
                         <div class="space-y-4 ${store.currentUser.role !== 'l2' ? 'opacity-40 pointer-events-none' : ''}">
                             <label class="text-[10px] font-black text-emerald-500 uppercase tracking-widest">L2 Final</label>
-                            <select onchange="setKsa('${key}', 'rating', 'l2', this.value)" class="w-full p-4 border border-emerald-100 rounded-2xl font-black bg-emerald-50/10 text-emerald-700">
+                            <select onchange="setKsa('${key}', 'rating', 'l2', this.value)" class="w-full p-4 border border-emerald-100 rounded-2xl font-black bg-emerald-50/10 text-emerald-700 text-sm">
                                 ${[0, 1, 2, 3, 4, 5].map(v => `<option value="${v}" ${data.l2.rating == v ? 'selected' : ''}>${v || 'Rate'}</option>`).join('')}
                             </select>
                             <div class="p-6 bg-emerald-50/50 border border-emerald-100 rounded-2xl text-[10px] text-emerald-700/60 font-bold italic">L2 finalizes competence score.</div>
@@ -878,9 +904,9 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-indigo-900/40 via-transparent to-emerald-900/20"></div>
         </div>
         
-        <div class="relative w-full max-w-[1000px] flex bg-slate-900/80 backdrop-blur-3xl rounded-[3rem] overflow-hidden border border-white/10 shadow-[0_0_100px_rgba(0,0,0,0.5)]">
+        <div class="relative w-full max-w-md md:max-w-[1000px] m-4 flex bg-slate-900/80 backdrop-blur-3xl rounded-3xl md:rounded-[3rem] overflow-hidden border border-white/10 shadow-[0_0_100px_rgba(0,0,0,0.5)]">
             <!-- Left Panel: Branding -->
-            <div class="hidden md:flex w-5/12 bg-orange-600 p-16 flex-col justify-between relative overflow-hidden">
+            <div class="hidden md:flex md:w-5/12 bg-orange-600 p-16 flex-col justify-between relative overflow-hidden">
                 <div class="absolute inset-0 bg-gradient-to-br from-orange-500 to-orange-800 opacity-90"></div>
                 <div class="absolute -bottom-20 -left-20 w-80 h-80 bg-white/10 rounded-full blur-3xl"></div>
                 
@@ -903,7 +929,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
 
             <!-- Right Panel: Login Form -->
-            <div class="flex-1 p-16 md:p-20 flex flex-col justify-center bg-white/5">
+            <div class="flex-1 p-8 sm:p-12 md:p-16 flex flex-col justify-center bg-white/5 relative">
                 <div class="mb-10 text-center md:text-left">
                     <h2 class="text-3xl font-black text-white mb-2 text-center md:text-left">Secure Login</h2>
                     <p class="text-slate-500 font-bold text-sm uppercase tracking-widest text-center md:text-left">Enter your credentials to access the portal</p>
@@ -914,34 +940,31 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="space-y-4">
                         <div class="relative group">
                             <i data-lucide="user" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-orange-400 transition-colors"></i>
-                            <input type="text" id="login-user" placeholder="Username or Employee ID" 
-                                class="w-full bg-slate-800/50 border border-white/5 rounded-2xl py-4 pl-12 pr-6 text-white font-bold outline-none focus:ring-2 focus:ring-orange-500/50 transition-all placeholder:text-slate-600">
+                            <input type="text" id="login-user" placeholder="Username or ID" 
+                                class="w-full bg-slate-800/50 border border-white/5 rounded-2xl py-4 pl-12 pr-6 text-white font-bold outline-none focus:ring-2 focus:ring-orange-500/50 transition-all placeholder:text-slate-600 text-sm">
                         </div>
                         <div class="relative group">
                             <i data-lucide="lock" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-600 group-focus-within:text-orange-400 transition-colors"></i>
                             <input type="password" id="login-pass" placeholder="Password" 
-                                class="w-full bg-slate-800/50 border border-white/5 rounded-2xl py-4 pl-12 pr-6 text-white font-bold outline-none focus:ring-2 focus:ring-orange-500/50 transition-all placeholder:text-slate-600">
+                                class="w-full bg-slate-800/50 border border-white/5 rounded-2xl py-4 pl-12 pr-6 text-white font-bold outline-none focus:ring-2 focus:ring-orange-500/50 transition-all placeholder:text-slate-600 text-sm">
                         </div>
                     </div>
                     
                     <button type="submit" 
-                        class="w-full py-4 bg-orange-600 hover:bg-orange-700 text-white font-black rounded-2xl shadow-xl shadow-orange-600/20 transition-all transform hover:scale-[1.02] active:scale-95">
+                        class="w-full py-4 bg-orange-600 hover:bg-orange-700 text-white font-black rounded-2xl shadow-xl shadow-orange-600/20 transition-all transform hover:scale-[1.02] active:scale-95 text-sm">
                         LOGIN TO PORTAL
                     </button>
                 </form>
                     
-                    <div id="emp-preview" class="p-4 bg-white/5 border border-white/10 rounded-2xl hidden items-center space-x-4 animate-fade-in">
-                        <div id="emp-preview-icon" class="w-10 h-10 bg-orange-600 rounded-lg flex items-center justify-center font-black text-white text-xs"></div>
-                        <div>
-                            <p id="emp-preview-name" class="text-white font-black text-sm"></p>
-                            <p id="emp-preview-role" class="text-slate-500 text-[10px] uppercase font-bold tracking-tighter"></p>
-                        </div>
+                <div id="emp-preview" class="p-4 bg-white/5 border border-white/10 rounded-2xl hidden items-center space-x-4 animate-fade-in mt-6">
+                    <div id="emp-preview-icon" class="w-10 h-10 bg-orange-600 rounded-lg flex items-center justify-center font-black text-white text-xs"></div>
+                    <div>
+                        <p id="emp-preview-name" class="text-white font-black text-sm"></p>
+                        <p id="emp-preview-role" class="text-slate-500 text-[10px] uppercase font-bold tracking-tighter"></p>
                     </div>
                 </div>
 
-
-
-                <p class="mt-10 text-center text-slate-600 text-[10px] font-bold tracking-[0.2em] uppercase">Authorized Access Only</p>
+                <p class="mt-8 text-center text-slate-600 text-[10px] font-bold tracking-[0.2em] uppercase">Authorized Access Only</p>
             </div>
         </div>`;
 
