@@ -6,7 +6,10 @@ Welcome to the **Smartavya Analytica Performance Portal**. This guide will help 
 *   **URL**: [Internal Portal Link]
 *   **Username**: Your unique Employee ID (e.g., `emp-1001`)
 *   **Default Password**: `[YourID]@2026` (e.g., `emp-1001@2026`)
-*   **Security**: We recommend changing your password immediately after your first login via the **Account Security** section in the sidebar.
+*   **Security**: We recommend changing your password immediately after your first login.
+    *   Click the **Hamburger Menu** (top-left) to open the sidebar.
+    *   Under the **Account Security** section, click **Change Password**.
+    *   Enter your new password (minimum 4 characters) in the secure modal and save.
 
 ## 2. Appraisal Workflow
 The appraisal consists of four key sections:
@@ -33,11 +36,12 @@ The appraisal consists of four key sections:
 *   List any professional certifications earned during the 2026 cycle.
 *   Provide links to digital credentials where applicable.
 
-## 3. Submission & Review
+## 3. Submission, Review, & Export
 1.  **Drafts**: You can save your progress at any time using the **Save Draft** button.
 2.  **Submit Review**: Once all sections are complete (progress bar at 100%), click **Submit Review**.
 3.  **Manager Review**: Your L1 Manager will review your self-evaluation and provide feedback.
 4.  **Finalization**: Your L2 Manager will provide the final sign-off and score.
+5.  **Export Your Review**: At any time, you can click the green **Export CSV** button located in the top navigation bar to download a personal copy of your evaluation, including your manager's ratings and feedback.
 
 ## 4. Support
 If you encounter any technical issues or forgot your password, please contact the **System Administrator** via the portal or internal email.

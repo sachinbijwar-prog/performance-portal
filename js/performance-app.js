@@ -43,17 +43,59 @@ const CERT_TEMPLATE = [
     { id: 'cert-2', title: 'Leadership / Domain Cert', self: { name: '', date: '', link: '' }, l1: { rating: 0 } }
 ];
 
+const RAW_EMPLOYEE_DATA = [
+    ["Abhishek Rastogi", "Employee"], ["Ganesh Shinde", "Employee"], ["Swapnil Karwa", "L1 Manager"],
+    ["Abhinay Rindhe", "Employee"], ["Akshay Rohidas Gaikwad", "Employee"], ["Aniket Bhairu More", "Employee"],
+    ["Sailesh Kumar", "L1 Manager"], ["Sudarshan Jadhav", "Employee"], ["Sughosh Prashant Pande", "Employee"],
+    ["Vivek Vinchankar", "Employee"], ["Yashwant Bhatane", "Employee"], ["Pravin Devidas Gaddam", "Employee"],
+    ["Akshay Shetty", "Employee"], ["Chaitrali Nakhate", "Employee"], ["Dinesh Chandu", "L1 Manager"],
+    ["Harshad Vasudev Jadhav", "Employee"], ["Madhuri Sapkal", "L1 Manager"], ["Prajjwal Jain", "Employee"],
+    ["Ritwik Parija", "Employee"], ["Sachin Lad", "Employee"], ["Shubham Lokhande", "Employee"],
+    ["Sourabh Sanjay Patil", "Employee"], ["Syedabdul Shami", "Employee"], ["Anuja Deokar", "Employee"],
+    ["Dharmesh Saraiya", "Employee"], ["Dishant Shinde", "Employee"], ["Kaustubh Alkari", "Employee"],
+    ["Kurukuntla Reddy", "Employee"], ["Manishkumar Prajapati", "Employee"], ["Nitin Karche", "Employee"],
+    ["Rohit Vishnu Pawar", "Employee"], ["Sakshi Jadhav", "Employee"], ["Sarita Yadav", "Employee"],
+    ["Srirum Sridhar", "Employee"], ["Vishal Singh", "Employee"], ["Vishalvanshikumar Patel", "L1 Manager"],
+    ["Yashashri Nimje", "Employee"], ["Ajinkya Barge", "Employee"], ["Arjun Tiwari", "Employee"],
+    ["Mahammad Thohidh", "Employee"], ["Mohammed Wahab", "Employee"], ["Nitali Gupta", "L1 Manager"],
+    ["Pikasa Bagchi", "L1 Manager"], ["Pranay Dafale", "Employee"], ["Rohan Jagtap", "Employee"],
+    ["Rudraksh Apte", "Employee"], ["Suraj Shinde", "L1 Manager"], ["Tushar Shirsath", "Employee"],
+    ["Saurabh Babasaheb Lengare", "Employee"], ["Sourabh Triveni Singh", "Employee"], ["Abdul Mannan", "Employee"],
+    ["Ankeet Rajesh Upadhyay", "Employee"], ["Prajwal Ramchandra Bhogle", "Employee"], ["Girish Patel", "L1 Manager and L2 Manager"],
+    ["Navneet Kaur", "L1 Manager and L2 Manager"], ["Sachin Bijwar", "L1 Manager and L2 Manager"], ["Simon Pinto", "L1 Manager and L2 Manager"],
+    ["Akshay Lanjewar", "Employee"], ["Mihir Amdekar", "Employee"], ["Omkar Sunil Kamathe", "Employee"],
+    ["Deepthi Krishnan Mani Ramakrishnan", "Employee"]
+];
+
 const INITIAL_DATA = {
     employees: {
-        'admin': { id: 'admin', icon: 'AD', name: 'System Admin', role: 'admin', password: 'admin', designation: 'Portal Administrator', kras: [], ksa: {}, coe: [], certifications: [] },
-        'emp-1': { id: 'emp-1', icon: 'SB', name: 'Sachin Bijwar', role: 'employee', designation: 'Senior Architect', kras: JSON.parse(JSON.stringify(KRA_TEMPLATE)), ksa: JSON.parse(JSON.stringify(KSA_TEMPLATE)), coe: JSON.parse(JSON.stringify(COE_TEMPLATE)), certifications: JSON.parse(JSON.stringify(CERT_TEMPLATE)) },
-        'emp-2': { id: 'emp-2', icon: 'AR', name: 'Ananya Rao', role: 'employee', designation: 'UX Lead', kras: JSON.parse(JSON.stringify(KRA_TEMPLATE)), ksa: JSON.parse(JSON.stringify(KSA_TEMPLATE)), coe: JSON.parse(JSON.stringify(COE_TEMPLATE)), certifications: JSON.parse(JSON.stringify(CERT_TEMPLATE)) },
-        'emp-3': { id: 'emp-3', icon: 'RM', name: 'Rohan Mehta', role: 'employee', designation: 'Data Scientist', kras: JSON.parse(JSON.stringify(KRA_TEMPLATE)), ksa: JSON.parse(JSON.stringify(KSA_TEMPLATE)), coe: JSON.parse(JSON.stringify(COE_TEMPLATE)), certifications: JSON.parse(JSON.stringify(CERT_TEMPLATE)) },
-        'emp-4': { id: 'emp-4', icon: 'ZK', name: 'Zoya Khan', role: 'employee', designation: 'Ops Manager', kras: JSON.parse(JSON.stringify(KRA_TEMPLATE)), ksa: JSON.parse(JSON.stringify(KSA_TEMPLATE)), coe: JSON.parse(JSON.stringify(COE_TEMPLATE)), certifications: JSON.parse(JSON.stringify(CERT_TEMPLATE)) }
+        'admin': { id: 'admin', icon: 'AD', name: 'System Admin', role: 'admin', password: 'admin', designation: 'Portal Administrator', kras: [], ksa: {}, coe: [], certifications: [] }
     },
     currentUser: null,
     selectedEmployeeId: 'emp-1'
 };
+
+RAW_EMPLOYEE_DATA.forEach((data, index) => {
+    const id = `emp-${index + 1}`;
+    const name = data[0];
+    const roleStr = data[1];
+    
+    let role = 'employee';
+    let designation = 'Consultant';
+    if (roleStr === 'L1 Manager') { role = 'l1'; designation = 'Manager'; }
+    if (roleStr === 'L1 Manager and L2 Manager') { role = 'l2'; designation = 'Director'; }
+    
+    const icon = name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
+    const password = name.split(' ')[0].toLowerCase() + '@2026';
+    
+    INITIAL_DATA.employees[id] = {
+        id, icon, name, role, designation, password,
+        kras: JSON.parse(JSON.stringify(KRA_TEMPLATE)),
+        ksa: JSON.parse(JSON.stringify(KSA_TEMPLATE)),
+        coe: JSON.parse(JSON.stringify(COE_TEMPLATE)),
+        certifications: JSON.parse(JSON.stringify(CERT_TEMPLATE))
+    };
+});
 
 // --- GLOBAL STORE ---
 let store = INITIAL_DATA; // Start with local default
@@ -88,53 +130,41 @@ async function loadFromCloud() {
                 if (!emp.role) emp.role = emp.id.includes('emp') ? 'employee' : 'l1';
             });
             
-            // BULK ADD ATTACHED USERS IF MISSING
-            const bulkUsers = [
-                "Pramod Kejriwal", "Sachin Bijwar", "Mitali Pranav Gupta", "Amit Morajkar", 
-                "Prasad Revannath Choudhari", "Rohan Mohan Jagtap", "Ajinkya Borge", "Punit Ramanlal Shah",
-                "Arjun Dhrupdev Tiwari", "Akash Ravindra Salunke", "Pranay Prakash Datale", "Pranav Novale",
-                "Swapnil Omprakash Karwa", "Harish Chellikonda", "Khushal Shevalekar", "Amol Ghuge",
-                "Abhiney Rindhe", "Abhishek Rastogi", "Pooja Shivran", "Nikhil Patil", "Yasir Pathan",
-                "V Mohammed Thohidh", "Amit Kulkarni", "Mayur Sindhani", "Simon Pinto", "Nishant Chavan",
-                "Tushar Amrut Shirsath", "Suraj Narendra Shinde", "Dinesh Chanda", "Tejal Bhayani",
-                "Tamizhselvan K", "Vishal Singh", "Manishkumar Hirilal Prajapati", "Waman Balajirao Birajdar",
-                "Sudarshan Jadhav", "Rajan Kotru", "Chandrakiran mewad", "Lokashwari D", "Nuthi venkata Sai Nath",
-                "Thumu Hemanthra Reddy", "Ravi Shekhar", "Sufyan Muhammad Zubair Abubakar", "Shivam Kumar Pandey",
-                "Sanket Ramesh Jain", "Vaibhav Ravindra Patil", "Prasad Balasaheb Lamite", "Kondeti Inyal Victor",
-                "Ravi Kumar Raju", "Adnan Qurashi", "Sarika Yadav", "Srikanth R", "Goli Kishorebabu",
-                "Rahul Omprakash Yadav", "Ganesh Shivaji Shinde", "Akshay Karunakar Shetty", "Sakshi Ashok Jadhav",
-                "Vishal Vijay Deshmukh", "Ajinkya Pravin Toke", "Vivek Shrikrushna Vinchurkar", "Nitin Shrivastava",
-                "Yashwant Ganeshrao Khotane", "Sandip Chandrakant Chaudhari", "Chennakes Jayshyam",
-                "Mayur Krishna Bhedige", "Kaustubh Pramod Atkari", "Kurakantla Manoj Kumar Reddy",
-                "Mohammed Wahab", "Martin Ahmed Fayaz Nizam", "Uday Kumar Kurada", "Dipan Sureshcandra Desai",
-                "Yash Kamlesh Pandya", "Makarand Manohar Satam", "Pramod Kumar Dubey", "Mayank Tyagi",
-                "Mohit Ahuja", "Mrudula Maniksingh Pardeshi", "Prasad Milind Joshi", "Sanket Ganesh Bhoir",
-                "Avinash Raosaheb chougule", "Ajit Ashok Ingale", "Vishal Anant Kadam", "Jennifer Rakesh Misra",
-                "Sheshadrivendra", "Yashashri Yogesh Nimje", "Mihir Nitin Ambekar", "Girish Devidas Pandit",
-                "Vicky Soni", "Sudhanshu Patil", "Piyush Shajwal", "Mukul Vinayak Dhote", "Harshal Chitto",
-                "Prajjwal Jain", "Shubham Rajiv Lokhande", "Dnyanesh Vasudev Patharwat", "Aniket Bhaiuu More",
-                "Omkar Sunil Komatke", "Abhishek Kumar Sinha", "Pravin Kashavrao", "Aryan Rajput",
-                "Sahil Talathi", "Prajakta Sudhir Honawale", "Jay Jitendra Bhagat", "Sayed Abdul Shami",
-                "Chaitrali Sharad Nakhate", "Shirish Jain", "Rohit Kumar", "Nitin Karoche"
-            ];
-
+            // MERGE NEW EMPLOYEES IF MISSING (using canonical employee list)
             let added = false;
-            bulkUsers.forEach((name, i) => {
+            RAW_EMPLOYEE_DATA.forEach((data) => {
+                const name = data[0];
+                const roleStr = data[1];
                 const username = name.toLowerCase().replace(/\s+/g, '.');
+
                 if (!store.employees[username]) {
+                    let role = 'employee';
+                    let designation = 'Consultant';
+                    if (roleStr === 'L1 Manager') { role = 'l1'; designation = 'Manager'; }
+                    if (roleStr === 'L1 Manager and L2 Manager') { role = 'l2'; designation = 'Director'; }
+
+                    const icon = name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
+                    const password = name.split(' ')[0].toLowerCase() + '@2026';
+
                     store.employees[username] = {
-                        id: username, 
-                        name, 
-                        icon: name.split(' ').map(n => n[0]).join(''), 
-                        role: 'employee', 
-                        password: name.split(' ')[0].toLowerCase() + '@2026', // e.g. pramod@2026
-                        designation: 'Resource',
+                        id: username, name, icon, role, designation, password,
                         kras: JSON.parse(JSON.stringify(KRA_TEMPLATE)),
                         ksa: JSON.parse(JSON.stringify(KSA_TEMPLATE)),
                         coe: JSON.parse(JSON.stringify(COE_TEMPLATE)),
                         certifications: JSON.parse(JSON.stringify(CERT_TEMPLATE))
                     };
                     added = true;
+                } else {
+                    // Update role if it changed
+                    let role = 'employee';
+                    let designation = 'Consultant';
+                    if (roleStr === 'L1 Manager') { role = 'l1'; designation = 'Manager'; }
+                    if (roleStr === 'L1 Manager and L2 Manager') { role = 'l2'; designation = 'Director'; }
+                    if (store.employees[username].role !== role) {
+                        store.employees[username].role = role;
+                        store.employees[username].designation = designation;
+                        added = true;
+                    }
                 }
             });
 
@@ -144,20 +174,30 @@ async function loadFromCloud() {
                 added = true;
             }
 
-            // AUTO-CLEANUP DUPLICATES (Migration Support)
+            // CLEANUP: Remove stale emp-* IDs that were replaced by name-based IDs
             Object.keys(store.employees).forEach(id => {
                 if (id.startsWith('emp-')) {
                     const emp = store.employees[id];
                     const targetId = emp.name.toLowerCase().replace(/\s+/g, '.');
-                    if (id !== targetId) {
-                        console.log(`Consolidating ${id} into ${targetId}`);
-                        if (!store.employees[targetId]) {
-                            store.employees[targetId] = JSON.parse(JSON.stringify(emp));
-                            store.employees[targetId].id = targetId;
-                        }
-                        delete store.employees[id];
-                        added = true;
+                    if (!store.employees[targetId]) {
+                        store.employees[targetId] = JSON.parse(JSON.stringify(emp));
+                        store.employees[targetId].id = targetId;
                     }
+                    delete store.employees[id];
+                    added = true;
+                }
+            });
+
+            // PURGE: Remove employees NOT in the canonical list (clears old bulk users)
+            const canonicalIds = new Set(
+                RAW_EMPLOYEE_DATA.map(d => d[0].toLowerCase().replace(/\s+/g, '.'))
+            );
+            canonicalIds.add('admin');
+            Object.keys(store.employees).forEach(id => {
+                if (!canonicalIds.has(id)) {
+                    console.log(`Purging unlisted employee: ${id}`);
+                    delete store.employees[id];
+                    added = true;
                 }
             });
 
@@ -323,6 +363,23 @@ window.updatePassword = (newPass) => {
     if (!newPass || newPass.length < 4) return showNote('Password too short');
     store.employees[store.currentUser.id].password = newPass;
     save();
+    showNote('Password updated successfully!');
+};
+
+window.submitPinChange = () => {
+    const p1 = document.getElementById('new-pin-input').value;
+    const p2 = document.getElementById('confirm-pin-input').value;
+    
+    if (!p1 || p1.length < 4) return showNote('Password must be at least 4 characters.');
+    if (p1 !== p2) return showNote('Passwords do not match.');
+    
+    store.employees[store.currentUser.id].password = p1;
+    save();
+    
+    document.getElementById('new-pin-input').value = '';
+    document.getElementById('confirm-pin-input').value = '';
+    document.getElementById('change-pin-modal').classList.add('hidden');
+    
     showNote('Password updated successfully!');
 };
 
@@ -496,6 +553,63 @@ window.exportToCsv = (fullDump = false) => {
     document.body.removeChild(link);
 };
 
+window.exportIndividualCsv = (empId) => {
+    if (!empId || !store.employees[empId]) return showNote('Invalid employee ID for export.');
+    const u = store.employees[empId];
+    const scores = calculateScores(u);
+    
+    let rows = [];
+    rows.push(['Employee Name', u.name]);
+    rows.push(['Employee ID', u.id]);
+    rows.push(['Role', u.designation]);
+    rows.push(['Status', getStatus(u)]);
+    rows.push(['Final KRA Score', scores.kra]);
+    rows.push(['Final KSA Score', scores.ksa]);
+    rows.push(['Overall Rating', scores.final]);
+    rows.push([]);
+    
+    // KRA Section
+    rows.push(['Key Result Areas (KRAs)']);
+    rows.push(['Title', 'Weightage', 'Self Rating', 'Self Justification', 'L1 Rating', 'L1 Comments', 'L2 Rating']);
+    (u.kras || []).forEach(k => {
+        rows.push([
+            k.title,
+            `${k.weightage}%`,
+            k.self.rating || 0,
+            `"${(k.self.justification || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`,
+            k.l1.rating || 0,
+            `"${(k.l1.comments || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`,
+            k.l2.rating || 0
+        ]);
+    });
+    rows.push([]);
+    
+    // KSA Section
+    rows.push(['Knowledge, Skills & Abilities (KSAs)']);
+    rows.push(['Category', 'Self Rating', 'Self Justification', 'L1 Rating', 'L1 Comments', 'L2 Rating']);
+    Object.keys(u.ksa || {}).forEach(key => {
+        const k = u.ksa[key];
+        rows.push([
+            k.label,
+            k.self.rating || 0,
+            `"${(k.self.justification || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`,
+            k.l1.rating || 0,
+            `"${(k.l1.comments || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`,
+            k.l2.rating || 0
+        ]);
+    });
+    
+    const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `${u.name.replace(/\s+/g, '_')}_Performance_Review_2026.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showNote('Individual CSV Exported successfully!');
+};
+
 window.deleteUser = (id) => {
     if (confirm(`Delete user ${id}?`)) {
         delete store.employees[id];
@@ -537,10 +651,10 @@ function renderAdmin(container) {
                             class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-orange-500/20 outline-none transition-all">
                     </div>
                     <div class="flex gap-2 w-full sm:w-auto">
-                        <button onclick="exportToCsv()" class="flex-1 sm:flex-initial px-4 py-3 bg-slate-100 text-slate-700 rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-slate-200 transition-all text-xs md:text-sm">
+                        <button onclick="exportToCsv()" class="flex-1 sm:flex-initial px-4 py-3 bg-slate-100 text-slate-700 rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-slate-200 transition-all text-xs md:text-sm whitespace-nowrap">
                             <i data-lucide="download" class="w-4 h-4"></i> Export CSV
                         </button>
-                        <button onclick="document.getElementById('add-user-modal').classList.toggle('hidden')" class="flex-1 sm:flex-initial px-4 py-3 bg-smart-orange text-white rounded-2xl font-black shadow-lg shadow-orange-500/20 flex items-center justify-center gap-2 text-xs md:text-sm">
+                        <button onclick="document.getElementById('add-user-modal').classList.toggle('hidden')" class="flex-1 sm:flex-initial px-4 py-3 bg-smart-orange text-white rounded-2xl font-black shadow-lg shadow-orange-500/20 flex items-center justify-center gap-2 text-xs md:text-sm whitespace-nowrap">
                             <i data-lucide="user-plus" class="w-4 h-4"></i> Add Resource
                         </button>
                     </div>

@@ -133,7 +133,7 @@
             <div class="p-4 border-t border-slate-800 space-y-4">
                 <div class="px-3">
                     <p class="text-[9px] text-slate-500 uppercase font-black mb-2 tracking-widest">Account Security</p>
-                    <button onclick="const p = prompt('Enter new password (min 4 chars):'); if(p) updatePassword(p);" class="w-full py-2 px-3 bg-slate-800/50 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg text-[10px] font-bold transition-all flex items-center justify-between group border border-white/5">
+                    <button onclick="document.getElementById('change-pin-modal').classList.toggle('hidden')" class="w-full py-2 px-3 bg-slate-800/50 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg text-[10px] font-bold transition-all flex items-center justify-between group border border-white/5">
                         <span>Change Password</span>
                         <i data-lucide="key" class="w-3 h-3 text-slate-600 group-hover:text-orange-400"></i>
                     </button>
@@ -178,6 +178,11 @@
                         class="px-2 py-0.5 md:px-3 md:py-1 bg-yellow-100 text-yellow-700 text-[10px] md:text-xs font-bold rounded-full border border-yellow-200 uppercase tracking-wider whitespace-nowrap">Draft</span>
                 </div>
                 <div class="flex items-center space-x-2 md:space-x-4">
+                    <button id="btn-export-individual" onclick="exportIndividualCsv(store.currentUser.id)"
+                        class="flex items-center space-x-1 md:space-x-2 px-3 py-1.5 md:px-4 md:py-2 bg-emerald-50 border border-emerald-200 rounded-xl text-xs md:text-sm font-bold text-emerald-700 hover:bg-emerald-100 transition-all shadow-sm" title="Export CSV">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                        <span class="hidden sm:inline">Export CSV</span>
+                    </button>
                     <button id="btn-save" onclick="saveDraft()"
                         class="flex items-center space-x-1 md:space-x-2 px-3 py-1.5 md:px-4 md:py-2 bg-white border border-slate-200 rounded-xl text-xs md:text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all" title="Save Draft">
                         <i data-lucide="save" class="w-4 h-4"></i>
@@ -267,6 +272,36 @@
             <div>
                 <p class="text-[10px] font-black text-orange-500 uppercase tracking-[0.2em] mb-1">System Alert</p>
                 <p id="ai-text" class="text-sm text-slate-600 font-medium leading-relaxed">Alert message goes here.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change PIN Modal -->
+    <div id="change-pin-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="document.getElementById('change-pin-modal').classList.add('hidden')"></div>
+        <div class="relative bg-white rounded-3xl w-full max-w-sm p-8 shadow-2xl animate-fade-in border border-slate-100">
+            <button onclick="document.getElementById('change-pin-modal').classList.add('hidden')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-full p-2 transition-all">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+            <div class="mb-6">
+                <div class="w-12 h-12 bg-orange-100 rounded-2xl flex items-center justify-center mb-4 text-orange-600">
+                    <i data-lucide="key" class="w-6 h-6"></i>
+                </div>
+                <h3 class="text-xl font-black text-slate-800">Change Password</h3>
+                <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1">Update your access credentials</p>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">New Password</label>
+                    <input type="password" id="new-pin-input" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-orange-500/20 outline-none" placeholder="Min 4 characters">
+                </div>
+                <div>
+                    <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">Confirm Password</label>
+                    <input type="password" id="confirm-pin-input" class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-orange-500/20 outline-none" placeholder="Repeat password">
+                </div>
+                <button onclick="submitPinChange()" class="w-full py-4 bg-orange-600 hover:bg-orange-700 text-white font-black rounded-2xl shadow-lg shadow-orange-600/20 transition-all mt-4">
+                    UPDATE PASSWORD
+                </button>
             </div>
         </div>
     </div>
