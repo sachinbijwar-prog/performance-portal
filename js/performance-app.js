@@ -352,6 +352,8 @@ async function loadFromCloud() {
                 
                 document.getElementById('login-overlay').classList.add('hidden');
                 document.getElementById('app-container').classList.remove('opacity-0', 'blur-xl');
+                // Restore history state on session resume
+                history.replaceState({ view: currentView, selectedId: store.selectedEmployeeId }, '', '#' + currentView);
                 renderSidebar();
                 render();
             }
@@ -495,6 +497,9 @@ window.login = (type, id, pass) => {
     save();
     document.getElementById('login-overlay').classList.add('hidden');
     document.getElementById('app-container').classList.remove('opacity-0', 'blur-xl');
+    // Push initial history entry after login
+    const initialView = emp.role === 'employee' ? 'kra' : 'dashboard';
+    history.replaceState({ view: initialView, selectedId: store.selectedEmployeeId }, '', '#' + initialView);
     renderSidebar(); 
     render();
 };
@@ -566,13 +571,18 @@ window.toggleSidebar = () => {
     }
 };
 
-window.navigate = (v) => { 
+window.navigate = (v, pushState = true) => { 
     currentView = v; 
     const sessionData = localStorage.getItem('sa_eval_session');
     if (sessionData) {
         const session = JSON.parse(sessionData);
         session.view = v;
         localStorage.setItem('sa_eval_session', JSON.stringify(session));
+    }
+    // Push to browser history so back/forward works
+    if (pushState) {
+        const url = '#' + v;
+        history.pushState({ view: v, selectedId: store.selectedEmployeeId }, '', url);
     }
     // Auto-close sidebar on mobile after clicking navigation
     const sidebar = document.getElementById('sidebar');
@@ -585,6 +595,25 @@ window.navigate = (v) => {
     renderSidebar(); 
     render(); 
 };
+
+// Handle browser back/forward buttons
+window.addEventListener('popstate', (e) => {
+    if (!store.currentUser) return; // not logged in, ignore
+    if (e.state && e.state.view) {
+        // Restore selected employee if it was stored in state
+        if (e.state.selectedId && store.employees[e.state.selectedId]) {
+            store.selectedEmployeeId = e.state.selectedId;
+        }
+        navigate(e.state.view, false); // false = don't push another history entry
+    } else {
+        // Fallback: read from hash
+        const hash = location.hash.replace('#', '');
+        const validViews = ['dashboard', 'kra', 'ksa', 'admin'];
+        if (validViews.includes(hash)) {
+            navigate(hash, false);
+        }
+    }
+});
 
 let searchQuery = "";
 let pipelineFilter = "all";
