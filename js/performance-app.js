@@ -64,7 +64,69 @@ const RAW_EMPLOYEE_DATA = [
     ["Ankeet Rajesh Upadhyay", "Employee"], ["Prajwal Ramchandra Bhogle", "Employee"], ["Girish Patel", "L1 Manager and L2 Manager"],
     ["Navneet Kaur", "L1 Manager and L2 Manager"], ["Sachin Bijwar", "L1 Manager and L2 Manager"], ["Simon Pinto", "L1 Manager and L2 Manager"],
     ["Akshay Lanjewar", "Employee"], ["Mihir Amdekar", "Employee"], ["Omkar Sunil Kamathe", "Employee"],
-    ["Deepthi Krishnan Mani Ramakrishnan", "Employee"]
+    ["Deepthi Krishnan Mani Ramakrishnan", "Employee"], ["Punit Shah", "L1 Manager and L2 Manager"], ["Pramod", "L1 Manager and L2 Manager"]
+];
+
+const RESOURCE_MANAGER_MAPPING = [
+    ["Abhishek Rastogi", "Sailesh Kumar", "Sachin Bijwar"],
+    ["Ganesh Shinde", "Swapnil Karwa", "Simon Pinto"],
+    ["Swapnil Karwa", "Sachin Bijwar", "Punit Shah"],
+    ["Abhinay Rindhe", "Pikasa Bagchi", "Sachin Bijwar"],
+    ["Akshay Rohidas Gaikwad", "NA", "Punit Shah"],
+    ["Aniket Bhairu More", "Suraj Shinde", "Simon Pinto"],
+    ["Sailesh Kumar", "Punit Shah", "Pramod"],
+    ["Sudarshan Jadhav", "Sailesh Kumar", "Sachin Bijwar"],
+    ["Sughosh Prashant Pande", "Vishalvanshikumar Patel", "Sachin Bijwar"],
+    ["Vivek Vinchankar", "Vishalvanshikumar Patel", "Sachin Bijwar"],
+    ["Yashwant Bhatane", "Sailesh Kumar", "Sachin Bijwar"],
+    ["Pravin Devidas Gaddam", "NA", "Punit Shah"],
+    ["Akshay Shetty", "Swapnil Karwa", "Simon Pinto"],
+    ["Chaitrali Nakhate", "Dinesh Chandu", "Girish Patel"],
+    ["Dinesh Chandu", "Girish Patel", "Punit Shah"],
+    ["Harshad Vasudev Jadhav", "Madhuri Sapkal", "Girish Patel"],
+    ["Madhuri Sapkal", "Girish Patel", "Sachin Bijwar"],
+    ["Prajjwal Jain", "Dinesh Chandu", "Sachin Bijwar"],
+    ["Ritwik Parija", "Madhuri Sapkal", "Girish Patel"],
+    ["Sachin Lad", "Punit Shah", "Pramod"],
+    ["Shubham Lokhande", "Dinesh Chandu", "Sachin Bijwar"],
+    ["Sourabh Sanjay Patil", "Madhuri Sapkal", "Girish Patel"],
+    ["Syedabdul Shami", "Dinesh Chandu", "Girish Patel"],
+    ["Anuja Deokar", "Suraj Shinde", "Sachin Bijwar"],
+    ["Dharmesh Saraiya", "Swapnil Karwa", "Simon Pinto"],
+    ["Dishant Shinde", "Navneet Kaur", "Simon Pinto"],
+    ["Kaustubh Alkari", "Navneet Kaur", "Simon Pinto"],
+    ["Kurukuntla Reddy", "Suraj Shinde", "Simon Pinto"],
+    ["Nitin Karche", "Navneet Kaur", "Simon Pinto"],
+    ["Rohit Vishnu Pawar", "Navneet Kaur", "Simon Pinto"],
+    ["Sakshi Jadhav", "Pikasa Bagchi", "Simon Pinto"],
+    ["Sarita Yadav", "Swapnil Karwa", "Simon Pinto"],
+    ["Srirum Sridhar", "Swapnil Karwa", "Simon Pinto"],
+    ["Vishal Singh", "Suraj Shinde", "Simon Pinto"],
+    ["Vishalvanshikumar Patel", "Simon Pinto", "Punit Shah"],
+    ["Yashashri Nimje", "Navneet Kaur", "Simon Pinto"],
+    ["Ajinkya Barge", "Suraj Shinde", "Simon Pinto"],
+    ["Arjun Tiwari", "Nitali Gupta", "Sachin Bijwar"],
+    ["Mahammad Thohidh", "Vishalvanshikumar Patel", "Simon Pinto"],
+    ["Nitali Gupta", "Sachin Bijwar", "Punit Shah"],
+    ["Pikasa Bagchi", "Simon Pinto", "Punit Shah"],
+    ["Pranay Dafale", "Swapnil Karwa", "Sachin Bijwar"],
+    ["Rohan Jagtap", "Nitali Gupta", "Sachin Bijwar"],
+    ["Rudraksh Apte", "Navneet Kaur", "Simon Pinto"],
+    ["Suraj Shinde", "Simon Pinto", "Punit Shah"],
+    ["Tushar Shirsath", "Nitali Gupta", "Sachin Bijwar"],
+    ["Saurabh Babasaheb Lengare", "NA", "Punit Shah"],
+    ["Sourabh Triveni Singh", "NA", "Punit Shah"],
+    ["Abdul Mannan", "Sachin Bijwar", "Punit Shah"],
+    ["Ankeet Rajesh Upadhyay", "Sailesh Kumar", "Sachin Bijwar"],
+    ["Prajwal Ramchandra Bhogle", "Suraj Shinde", "Sachin Bijwar"],
+    ["Girish Patel", "Sachin Bijwar", "Punit Shah"],
+    ["Navneet Kaur", "Simon Pinto", "Punit Shah"],
+    ["Sachin Bijwar", "Punit Shah", "Pramod"],
+    ["Simon Pinto", "Punit Shah", "Pramod"],
+    ["Akshay Lanjewar", "Sachin Bijwar", "Simon Pinto"],
+    ["Mihir Amdekar", "Sailesh Kumar", "Sachin Bijwar"],
+    ["Omkar Sunil Kamathe", "Sailesh Kumar", "Sachin Bijwar"],
+    ["Deepthi Krishnan Mani Ramakrishnan", "Pikasa Bagchi", "Simon Pinto"]
 ];
 
 const INITIAL_DATA = {
@@ -76,8 +138,8 @@ const INITIAL_DATA = {
 };
 
 RAW_EMPLOYEE_DATA.forEach((data, index) => {
-    const id = `emp-${index + 1}`;
     const name = data[0];
+    const id = toUserId(name);
     const roleStr = data[1];
     
     let role = 'employee';
@@ -99,6 +161,87 @@ RAW_EMPLOYEE_DATA.forEach((data, index) => {
 
 // --- GLOBAL STORE ---
 let store = INITIAL_DATA; // Start with local default
+
+function toUserId(name) {
+    return (name || '').toLowerCase().replace(/\s+/g, '.');
+}
+
+function createEmployeeRecord(name, roleStr = 'Employee') {
+    let role = 'employee';
+    let designation = 'Consultant';
+    if (roleStr === 'L1 Manager') { role = 'l1'; designation = 'Manager'; }
+    if (roleStr === 'L1 Manager and L2 Manager') { role = 'l2'; designation = 'Director'; }
+
+    const id = toUserId(name);
+    const icon = name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
+    const password = name.split(' ')[0].toLowerCase() + '@2026';
+
+    return {
+        id, icon, name, role, designation, password,
+        kras: JSON.parse(JSON.stringify(KRA_TEMPLATE)),
+        ksa: JSON.parse(JSON.stringify(KSA_TEMPLATE)),
+        coe: JSON.parse(JSON.stringify(COE_TEMPLATE)),
+        certifications: JSON.parse(JSON.stringify(CERT_TEMPLATE))
+    };
+}
+
+function ensureEmployeeByName(name, roleStr = 'Employee') {
+    if (!name || name === 'NA') return null;
+    const id = toUserId(name);
+    if (!store.employees[id]) {
+        store.employees[id] = createEmployeeRecord(name, roleStr);
+        return store.employees[id];
+    }
+    return store.employees[id];
+}
+
+function applyManagerMapping() {
+    let changed = false;
+    RESOURCE_MANAGER_MAPPING.forEach(([resourceName, l1Name, l2Name]) => {
+        const emp = ensureEmployeeByName(resourceName);
+        if (!emp) return;
+        const l1 = ensureEmployeeByName(l1Name, 'L1 Manager');
+        const l2 = ensureEmployeeByName(l2Name, 'L1 Manager and L2 Manager');
+        const updates = {
+            l1ManagerId: l1 ? l1.id : null,
+            l1ManagerName: l1 ? l1.name : 'NA',
+            l2ManagerId: l2 ? l2.id : null,
+            l2ManagerName: l2 ? l2.name : 'NA'
+        };
+        Object.entries(updates).forEach(([key, value]) => {
+            if (emp[key] !== value) {
+                emp[key] = value;
+                changed = true;
+            }
+        });
+    });
+    return changed;
+}
+
+function isSelfReview(emp) {
+    return !!emp && !!store.currentUser && emp.id === store.currentUser.id;
+}
+
+function canReviewAs(emp, level) {
+    if (!emp || !store.currentUser) return false;
+    if (level === 'self') return isSelfReview(emp);
+    if (level === 'l1') return emp.l1ManagerId === store.currentUser.id;
+    if (level === 'l2') return emp.l2ManagerId === store.currentUser.id;
+    return false;
+}
+
+function getVisibleEmployees() {
+    const employees = Object.values(store.employees).filter(e => e.role !== 'admin');
+    if (!store.currentUser) return employees;
+    if (store.currentUser.role === 'admin') return employees;
+    return employees.filter(e =>
+        e.id === store.currentUser.id ||
+        e.l1ManagerId === store.currentUser.id ||
+        e.l2ManagerId === store.currentUser.id
+    );
+}
+
+applyManagerMapping();
 
 // --- FIREBASE SYNC FUNCTIONS ---
 
@@ -135,24 +278,10 @@ async function loadFromCloud() {
             RAW_EMPLOYEE_DATA.forEach((data) => {
                 const name = data[0];
                 const roleStr = data[1];
-                const username = name.toLowerCase().replace(/\s+/g, '.');
+                const username = toUserId(name);
 
                 if (!store.employees[username]) {
-                    let role = 'employee';
-                    let designation = 'Consultant';
-                    if (roleStr === 'L1 Manager') { role = 'l1'; designation = 'Manager'; }
-                    if (roleStr === 'L1 Manager and L2 Manager') { role = 'l2'; designation = 'Director'; }
-
-                    const icon = name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
-                    const password = name.split(' ')[0].toLowerCase() + '@2026';
-
-                    store.employees[username] = {
-                        id: username, name, icon, role, designation, password,
-                        kras: JSON.parse(JSON.stringify(KRA_TEMPLATE)),
-                        ksa: JSON.parse(JSON.stringify(KSA_TEMPLATE)),
-                        coe: JSON.parse(JSON.stringify(COE_TEMPLATE)),
-                        certifications: JSON.parse(JSON.stringify(CERT_TEMPLATE))
-                    };
+                    store.employees[username] = createEmployeeRecord(name, roleStr);
                     added = true;
                 } else {
                     // Update role if it changed
@@ -178,7 +307,7 @@ async function loadFromCloud() {
             Object.keys(store.employees).forEach(id => {
                 if (id.startsWith('emp-')) {
                     const emp = store.employees[id];
-                    const targetId = emp.name.toLowerCase().replace(/\s+/g, '.');
+                    const targetId = toUserId(emp.name);
                     if (!store.employees[targetId]) {
                         store.employees[targetId] = JSON.parse(JSON.stringify(emp));
                         store.employees[targetId].id = targetId;
@@ -190,7 +319,7 @@ async function loadFromCloud() {
 
             // PURGE: Remove employees NOT in the canonical list (clears old bulk users)
             const canonicalIds = new Set(
-                RAW_EMPLOYEE_DATA.map(d => d[0].toLowerCase().replace(/\s+/g, '.'))
+                RAW_EMPLOYEE_DATA.map(d => toUserId(d[0]))
             );
             canonicalIds.add('admin');
             Object.keys(store.employees).forEach(id => {
@@ -200,6 +329,8 @@ async function loadFromCloud() {
                     added = true;
                 }
             });
+
+            if (applyManagerMapping()) added = true;
 
             if (added) save();
             
@@ -259,18 +390,30 @@ window.saveDraft = () => {
 
 window.submitReview = () => {
     const emp = store.employees[store.selectedEmployeeId];
-    const role = store.currentUser.role;
+    const status = getStatus(emp);
     
     let newStatus = "";
-    if (role === 'employee') newStatus = "Self-Completed";
-    else if (role === 'l1') newStatus = "L1-Approved";
-    else if (role === 'l2') newStatus = "L2-Finalized";
-    else return showNote("Administrators cannot submit appraisal reviews.");
+    let submitRole = "";
+    if (canReviewAs(emp, 'self')) {
+        newStatus = "Self-Completed";
+        submitRole = "self";
+    } else if (canReviewAs(emp, 'l1')) {
+        if (status === 'Draft') return showNote("Self evaluation must be submitted before L1 review.");
+        newStatus = "L1-Approved";
+        submitRole = "l1";
+    } else if (canReviewAs(emp, 'l2')) {
+        if (!(status === 'L1 Completed' || status === 'L1-Approved' || status === 'L2 Completed' || status === 'L2-Finalized')) {
+            return showNote("L1 review must be submitted before L2 finalization.");
+        }
+        newStatus = "L2-Finalized";
+        submitRole = "l2";
+    }
+    else return showNote(store.currentUser.role === 'admin' ? "Administrators cannot submit appraisal reviews." : "You are not mapped to submit this review.");
 
     if (confirm(`Are you sure you want to officially submit this evaluation as ${newStatus}?`)) {
         emp.statusOverride = newStatus;
-        if (role === 'l1') emp.l1_reviewer = store.currentUser.name;
-        if (role === 'l2') emp.l2_reviewer = store.currentUser.name;
+        if (submitRole === 'l1') emp.l1_reviewer = store.currentUser.name;
+        if (submitRole === 'l2') emp.l2_reviewer = store.currentUser.name;
         
         save();
         render();
@@ -279,8 +422,9 @@ window.submitReview = () => {
 };
 
 function getTeamStats() {
-    const stats = { draft: 0, self: 0, l1: 0, l2: 0, total: Object.keys(store.employees).length };
-    Object.values(store.employees).forEach(e => {
+    const employees = getVisibleEmployees();
+    const stats = { draft: 0, self: 0, l1: 0, l2: 0, total: employees.length };
+    employees.forEach(e => {
         const s = getStatus(e);
         if (s === 'L2 Completed' || s === 'L2-Finalized') stats.l2++;
         else if (s === 'L1 Completed' || s === 'L1-Approved') stats.l1++;
@@ -339,7 +483,8 @@ window.login = (type, id, pass) => {
     }
 
     store.currentUser = { role: emp.role, id, name: emp.name };
-    store.selectedEmployeeId = (emp.role === 'admin' || emp.role === 'l1' || emp.role === 'l2') ? Object.keys(store.employees).find(k => k !== 'admin') : id;
+    const visibleEmployees = getVisibleEmployees();
+    store.selectedEmployeeId = emp.role === 'employee' ? id : (visibleEmployees[0]?.id || id);
     
     localStorage.setItem('sa_eval_session', JSON.stringify({
         user: store.currentUser,
@@ -392,11 +537,15 @@ window.showNote = (msg) => {
 };
 
 window.setKra = (id, field, role, val) => {
+    const emp = store.employees[store.selectedEmployeeId];
+    if (!canReviewAs(emp, role)) return showNote("You are not mapped to edit this section.");
     store.employees[store.selectedEmployeeId].kras.find(x => x.id === id)[role][field] = field === 'rating' ? parseInt(val) : val;
     save(); render();
 };
 
 window.setKsa = (key, field, role, val) => {
+    const emp = store.employees[store.selectedEmployeeId];
+    if (!canReviewAs(emp, role)) return showNote("You are not mapped to edit this section.");
     store.employees[store.selectedEmployeeId].ksa[key][role][field] = field === 'rating' ? parseInt(val) : val;
     save(); render();
 };
@@ -438,11 +587,27 @@ window.navigate = (v) => {
 };
 
 let searchQuery = "";
+let pipelineFilter = "all";
 window.handleSearch = (val) => {
     searchQuery = val.toLowerCase();
     const adminBody = document.getElementById('admin-table-body');
     const dashBody = document.getElementById('dashboard-list-body');
     if (adminBody) renderAdminResults(adminBody);
+    if (dashBody) renderDashboardResults(dashBody);
+};
+
+window.setPipelineFilter = (filter) => {
+    pipelineFilter = filter;
+    const dashBody = document.getElementById('dashboard-list-body');
+    const filterBar = document.getElementById('pipeline-filter-bar');
+    if (filterBar) {
+        filterBar.querySelectorAll('button').forEach(btn => {
+            const active = btn.dataset.filter === filter;
+            btn.className = active
+                ? 'px-3 py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase shadow-sm transition-all'
+                : 'px-3 py-2 bg-white text-slate-500 border border-slate-200 rounded-xl text-[10px] font-black uppercase hover:bg-slate-50 transition-all';
+        });
+    }
     if (dashBody) renderDashboardResults(dashBody);
 };
 
@@ -471,6 +636,11 @@ function render() {
     
     // Auto-view logic
     if (store.currentUser.role === 'employee' && currentView === 'dashboard') currentView = 'kra';
+
+    const visibleIds = new Set(getVisibleEmployees().map(e => e.id));
+    if (!visibleIds.has(store.selectedEmployeeId)) {
+        store.selectedEmployeeId = getVisibleEmployees()[0]?.id || store.currentUser.id;
+    }
 
     let emp = store.employees[store.selectedEmployeeId] || store.employees[store.currentUser.id];
     if (!emp) {
@@ -747,12 +917,16 @@ window.toggleAccess = (id) => {
 };
 
 window.setCoe = (id, field, role, val) => {
+    const emp = store.employees[store.selectedEmployeeId];
+    if (!canReviewAs(emp, role)) return showNote("You are not mapped to edit this section.");
     const parsedVal = (field === 'rating') ? parseInt(val) : val;
     store.employees[store.selectedEmployeeId].coe.find(x => x.id === id)[role][field] = parsedVal;
     save(); render();
 };
 
 window.setCertifications = (id, field, role, val) => {
+    const emp = store.employees[store.selectedEmployeeId];
+    if (!canReviewAs(emp, role)) return showNote("You are not mapped to edit this section.");
     const parsedVal = (field === 'rating') ? parseInt(val) : val;
     store.employees[store.selectedEmployeeId].certifications.find(x => x.id === id)[role][field] = parsedVal;
     save(); render();
@@ -796,6 +970,21 @@ function renderDashboard(container) {
                         <input type="text" placeholder="Filter by name..." oninput="handleSearch(this.value)" value="${searchQuery}" 
                             class="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all">
                     </div>
+                    <div id="pipeline-filter-bar" class="flex flex-wrap gap-2">
+                        ${[
+                            { id: 'all', label: `All ${stats.total}` },
+                            { id: 'self', label: `Self ${stats.self}` },
+                            { id: 'l1', label: `L1 ${stats.l1}` },
+                            { id: 'l2', label: `L2 ${stats.l2}` }
+                        ].map(f => `
+                            <button type="button" data-filter="${f.id}" onclick="setPipelineFilter('${f.id}')"
+                                class="${pipelineFilter === f.id
+                                    ? 'px-3 py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase shadow-sm transition-all'
+                                    : 'px-3 py-2 bg-white text-slate-500 border border-slate-200 rounded-xl text-[10px] font-black uppercase hover:bg-slate-50 transition-all'}">
+                                ${f.label}
+                            </button>
+                        `).join('')}
+                    </div>
                 </div>
                 <div class="flex flex-wrap gap-2">
                     <span class="px-2.5 py-1 bg-slate-100 text-[9px] sm:text-[10px] font-bold rounded-full uppercase">Draft: ${stats.draft}</span>
@@ -809,11 +998,30 @@ function renderDashboard(container) {
 }
 
 function renderDashboardResults(container) {
-    container.innerHTML = Object.values(store.employees)
+    const filteredEmployees = getVisibleEmployees()
         .filter(e => e.name.toLowerCase().includes(searchQuery) || e.id.toLowerCase().includes(searchQuery))
+        .filter(e => {
+            const status = getStatus(e);
+            if (pipelineFilter === 'self') return status === 'Self Done' || status === 'Self-Completed';
+            if (pipelineFilter === 'l1') return status === 'L1 Completed' || status === 'L1-Approved';
+            if (pipelineFilter === 'l2') return status === 'L2 Completed' || status === 'L2-Finalized';
+            return true;
+        });
+
+    if (!filteredEmployees.length) {
+        container.innerHTML = `
+            <div class="p-8 bg-white border border-dashed border-slate-200 rounded-2xl text-center">
+                <p class="text-sm font-bold text-slate-500">No resources found for this filter.</p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = filteredEmployees
         .map(e => {
             const s = calculateScores(e);
             const isL2 = store.currentUser.role === 'l2';
+            const status = getStatus(e);
             return `
                 <div class="glass-card p-0 overflow-hidden hover:scale-[1.01] transition-all border border-slate-100 shadow-sm animate-fade-in">
                     <div class="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white">
@@ -822,6 +1030,7 @@ function renderDashboardResults(container) {
                             <div class="min-w-0">
                                 <p class="font-black text-slate-800 truncate">${e.name}</p>
                                 <p class="text-[10px] text-slate-400 uppercase font-black tracking-tighter truncate">${e.designation}</p>
+                                <p class="text-[9px] text-slate-400 uppercase font-bold truncate mt-1">L1: ${e.l1ManagerName || 'NA'} | L2: ${e.l2ManagerName || 'NA'}</p>
                             </div>
                         </div>
                         <div class="flex flex-wrap sm:flex-nowrap items-center justify-between sm:justify-end gap-4 sm:space-x-6">
@@ -836,9 +1045,9 @@ function renderDashboardResults(container) {
                         </div>
                     </div>
                     <div class="grid grid-cols-3 text-[9px] sm:text-[10px] font-black text-center border-t">
-                        <div class="py-2 ${getStatus(e) !== 'Draft' ? 'bg-emerald-500 text-white' : 'bg-slate-50 text-slate-300'}">PHASE 1: SELF</div>
-                        <div class="py-2 ${getStatus(e).includes('L1') || getStatus(e).includes('L2') ? 'bg-emerald-500 text-white' : 'bg-slate-50 text-slate-300'} border-l border-white/20">PHASE 2: L1</div>
-                        <div class="py-2 ${getStatus(e).includes('L2') ? 'bg-emerald-500 text-white' : 'bg-slate-50 text-slate-300'} border-l border-white/20">PHASE 3: L2</div>
+                        <div class="py-2 ${status !== 'Draft' ? 'bg-emerald-500 text-white' : 'bg-slate-50 text-slate-300'}">PHASE 1: SELF</div>
+                        <div class="py-2 ${status.includes('L1') || status.includes('L2') ? 'bg-emerald-500 text-white' : 'bg-slate-50 text-slate-300'} border-l border-white/20">PHASE 2: L1</div>
+                        <div class="py-2 ${status.includes('L2') ? 'bg-emerald-500 text-white' : 'bg-slate-50 text-slate-300'} border-l border-white/20">PHASE 3: L2</div>
                     </div>
                 </div>
             `;
@@ -847,11 +1056,16 @@ function renderDashboardResults(container) {
 }
 
 function renderKra(container, emp) {
+    const status = getStatus(emp);
+    const canEditSelf = canReviewAs(emp, 'self');
+    const canEditL1 = canReviewAs(emp, 'l1') && status !== 'Draft';
+    const canEditL2 = canReviewAs(emp, 'l2') && (status.includes('L1') || status.includes('L2'));
     container.innerHTML = `
         <div class="animate-fade-in space-y-6 md:space-y-8">
             <div class="flex items-center justify-between">
                 <div>
                     <h1 class="text-xl md:text-2xl font-black text-slate-800">KRA Appraisal: ${emp.name}</h1>
+                    <p class="text-[10px] text-slate-400 font-bold mt-1 uppercase">L1: ${emp.l1ManagerName || 'NA'} | L2: ${emp.l2ManagerName || 'NA'}</p>
                     ${emp.l1_reviewer ? `<p class="text-[10px] text-indigo-600 font-bold mt-1 uppercase">L1 Review by: ${emp.l1_reviewer}</p>` : ''}
                     ${emp.l2_reviewer ? `<p class="text-[10px] text-emerald-600 font-bold mt-1 uppercase">L2 Finalized by: ${emp.l2_reviewer}</p>` : ''}
                 </div>
@@ -873,21 +1087,21 @@ function renderKra(container, emp) {
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 relative z-10">
                     <div class="space-y-4">
                         <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Self Evaluation</label>
-                        <select ${store.currentUser.role !== 'employee' ? 'disabled' : ''} onchange="setKra('${k.id}', 'rating', 'self', this.value)" class="w-full p-4 border rounded-2xl font-black text-indigo-700 text-sm">
+                        <select ${!canEditSelf ? 'disabled' : ''} onchange="setKra('${k.id}', 'rating', 'self', this.value)" class="w-full p-4 border rounded-2xl font-black text-indigo-700 text-sm">
                             ${[0, 1, 2, 3, 4, 5].map(v => `<option value="${v}" ${k.self.rating == v ? 'selected' : ''}>${v || 'Rate'}</option>`).join('')}
                         </select>
-                        <textarea ${store.currentUser.role !== 'employee' ? 'disabled' : ''} onblur="setKra('${k.id}', 'justification', 'self', this.value)" class="w-full p-4 border rounded-2xl text-sm h-32 bg-slate-50/10">${k.self.justification}</textarea>
+                        <textarea ${!canEditSelf ? 'disabled' : ''} onblur="setKra('${k.id}', 'justification', 'self', this.value)" class="w-full p-4 border rounded-2xl text-sm h-32 bg-slate-50/10">${k.self.justification}</textarea>
                     </div>
-                    <div class="space-y-4 ${store.currentUser.role === 'employee' ? 'opacity-40 pointer-events-none' : ''}">
+                    <div class="space-y-4 ${!canEditL1 ? 'opacity-40 pointer-events-none' : ''}">
                         <label class="text-[10px] font-black text-indigo-500 uppercase tracking-widest">L1 Manager</label>
-                        <select ${store.currentUser.role !== 'l1' ? 'disabled' : ''} onchange="setKra('${k.id}', 'rating', 'l1', this.value)" class="w-full p-4 border border-indigo-100 rounded-2xl font-black bg-indigo-50/10 text-sm">
+                        <select ${!canEditL1 ? 'disabled' : ''} onchange="setKra('${k.id}', 'rating', 'l1', this.value)" class="w-full p-4 border border-indigo-100 rounded-2xl font-black bg-indigo-50/10 text-sm">
                             ${[0, 1, 2, 3, 4, 5].map(v => `<option value="${v}" ${k.l1.rating == v ? 'selected' : ''}>${v || 'Rate'}</option>`).join('')}
                         </select>
-                        <textarea ${store.currentUser.role !== 'l1' ? 'disabled' : ''} onblur="setKra('${k.id}', 'comments', 'l1', this.value)" class="w-full p-4 border border-indigo-50 rounded-2xl text-sm h-32 bg-indigo-50/10">${k.l1.comments}</textarea>
+                        <textarea ${!canEditL1 ? 'disabled' : ''} onblur="setKra('${k.id}', 'comments', 'l1', this.value)" class="w-full p-4 border border-indigo-50 rounded-2xl text-sm h-32 bg-indigo-50/10">${k.l1.comments}</textarea>
                     </div>
-                    <div class="space-y-4 ${store.currentUser.role !== 'l2' ? 'opacity-40 pointer-events-none' : ''}">
+                    <div class="space-y-4 ${!canEditL2 ? 'opacity-40 pointer-events-none' : ''}">
                         <label class="text-[10px] font-black text-emerald-500 uppercase tracking-widest">L2 Final</label>
-                        <select onchange="setKra('${k.id}', 'rating', 'l2', this.value)" class="w-full p-4 border border-emerald-100 rounded-2xl font-black bg-emerald-50/10 text-emerald-700 text-sm">
+                        <select ${!canEditL2 ? 'disabled' : ''} onchange="setKra('${k.id}', 'rating', 'l2', this.value)" class="w-full p-4 border border-emerald-100 rounded-2xl font-black bg-emerald-50/10 text-emerald-700 text-sm">
                             ${[0, 1, 2, 3, 4, 5].map(v => `<option value="${v}" ${k.l2.rating == v ? 'selected' : ''}>${v || 'Rate'}</option>`).join('')}
                         </select>
                         <div class="p-6 bg-emerald-50/50 border border-emerald-100 rounded-2xl text-[10px] text-emerald-700/60 font-bold italic">L2 provides ultimate sign-off. Score is final.</div>
@@ -911,15 +1125,15 @@ function renderKra(container, emp) {
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 relative z-10">
                         <div class="space-y-4">
                             <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Self Declaration</label>
-                            <input type="text" placeholder="What did you contribute?" ${store.currentUser.role !== 'employee' ? 'disabled' : ''} onblur="setCoe('${c.id}', 'description', 'self', this.value)" value="${c.self.description}" class="w-full p-4 border rounded-2xl text-sm bg-slate-50/10 focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
-                            <input type="url" placeholder="Evidence Link (e.g. Confluence/Jira)" ${store.currentUser.role !== 'employee' ? 'disabled' : ''} onblur="setCoe('${c.id}', 'link', 'self', this.value)" value="${c.self.link}" class="w-full p-4 border rounded-2xl text-sm bg-slate-50/10 focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                            <input type="text" placeholder="What did you contribute?" ${!canEditSelf ? 'disabled' : ''} onblur="setCoe('${c.id}', 'description', 'self', this.value)" value="${c.self.description}" class="w-full p-4 border rounded-2xl text-sm bg-slate-50/10 focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                            <input type="url" placeholder="Evidence Link (e.g. Confluence/Jira)" ${!canEditSelf ? 'disabled' : ''} onblur="setCoe('${c.id}', 'link', 'self', this.value)" value="${c.self.link}" class="w-full p-4 border rounded-2xl text-sm bg-slate-50/10 focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
                         </div>
-                        <div class="space-y-4 ${store.currentUser.role === 'employee' ? 'opacity-40 pointer-events-none' : ''}">
+                        <div class="space-y-4 ${!canEditL1 ? 'opacity-40 pointer-events-none' : ''}">
                             <label class="text-[10px] font-black text-indigo-500 uppercase tracking-widest">Manager Assessment</label>
-                            <select ${store.currentUser.role !== 'l1' ? 'disabled' : ''} onchange="setCoe('${c.id}', 'rating', 'l1', this.value)" class="w-full p-4 border border-indigo-100 rounded-2xl font-black bg-indigo-50/10 text-indigo-700 text-sm">
+                            <select ${!canEditL1 ? 'disabled' : ''} onchange="setCoe('${c.id}', 'rating', 'l1', this.value)" class="w-full p-4 border border-indigo-100 rounded-2xl font-black bg-indigo-50/10 text-indigo-700 text-sm">
                                 ${[0, 1, 2, 3, 4, 5].map(v => `<option value="${v}" ${c.l1.rating == v ? 'selected' : ''}>${v || 'Rate Contribution'}</option>`).join('')}
                             </select>
-                            <textarea ${store.currentUser.role !== 'l1' ? 'disabled' : ''} onblur="setCoe('${c.id}', 'comments', 'l1', this.value)" placeholder="Manager comments..." class="w-full p-4 border border-indigo-50 rounded-2xl text-sm h-24 bg-indigo-50/10 focus:ring-2 focus:ring-indigo-500 outline-none transition-all">${c.l1.comments}</textarea>
+                            <textarea ${!canEditL1 ? 'disabled' : ''} onblur="setCoe('${c.id}', 'comments', 'l1', this.value)" placeholder="Manager comments..." class="w-full p-4 border border-indigo-50 rounded-2xl text-sm h-24 bg-indigo-50/10 focus:ring-2 focus:ring-indigo-500 outline-none transition-all">${c.l1.comments}</textarea>
                         </div>
                     </div>
                 </div>
@@ -943,16 +1157,16 @@ function renderKra(container, emp) {
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-10 relative z-10">
                         <div class="space-y-4">
                             <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Certification Details</label>
-                            <input type="text" placeholder="Exact Name of Certificate" ${store.currentUser.role !== 'employee' ? 'disabled' : ''} onblur="setCertifications('${c.id}', 'name', 'self', this.value)" value="${c.self.name}" class="w-full p-4 border rounded-2xl text-sm bg-slate-50/10 focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
+                            <input type="text" placeholder="Exact Name of Certificate" ${!canEditSelf ? 'disabled' : ''} onblur="setCertifications('${c.id}', 'name', 'self', this.value)" value="${c.self.name}" class="w-full p-4 border rounded-2xl text-sm bg-slate-50/10 focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
                             <div class="grid grid-cols-2 gap-4">
-                                <input type="date" ${store.currentUser.role !== 'employee' ? 'disabled' : ''} onblur="setCertifications('${c.id}', 'date', 'self', this.value)" value="${c.self.date}" class="w-full p-4 border rounded-2xl text-sm bg-slate-50/10 focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
-                                <input type="url" placeholder="Verification URL" ${store.currentUser.role !== 'employee' ? 'disabled' : ''} onblur="setCertifications('${c.id}', 'link', 'self', this.value)" value="${c.self.link}" class="w-full p-4 border rounded-2xl text-sm bg-slate-50/10 focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
+                                <input type="date" ${!canEditSelf ? 'disabled' : ''} onblur="setCertifications('${c.id}', 'date', 'self', this.value)" value="${c.self.date}" class="w-full p-4 border rounded-2xl text-sm bg-slate-50/10 focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
+                                <input type="url" placeholder="Verification URL" ${!canEditSelf ? 'disabled' : ''} onblur="setCertifications('${c.id}', 'link', 'self', this.value)" value="${c.self.link}" class="w-full p-4 border rounded-2xl text-sm bg-slate-50/10 focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
                             </div>
                         </div>
-                        <div class="space-y-4 ${store.currentUser.role === 'employee' ? 'opacity-40 pointer-events-none' : ''}">
+                        <div class="space-y-4 ${!canEditL1 ? 'opacity-40 pointer-events-none' : ''}">
                             <label class="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Verification & Approval</label>
                             <div class="flex gap-4">
-                                <select ${store.currentUser.role !== 'l1' ? 'disabled' : ''} onchange="setCertifications('${c.id}', 'rating', 'l1', this.value)" class="flex-1 p-4 border border-emerald-100 rounded-2xl font-black bg-emerald-50/10 text-emerald-700 text-sm">
+                                <select ${!canEditL1 ? 'disabled' : ''} onchange="setCertifications('${c.id}', 'rating', 'l1', this.value)" class="flex-1 p-4 border border-emerald-100 rounded-2xl font-black bg-emerald-50/10 text-emerald-700 text-sm">
                                     <option value="0" ${c.l1.rating == 0 ? 'selected' : ''}>Pending Verification</option>
                                     <option value="5" ${c.l1.rating == 5 ? 'selected' : ''}>Verified & Approved</option>
                                     <option value="1" ${c.l1.rating == 1 ? 'selected' : ''}>Rejected / Incomplete</option>
@@ -969,6 +1183,10 @@ function renderKra(container, emp) {
 }
 
 function renderKsa(container, emp) {
+    const status = getStatus(emp);
+    const canEditSelf = canReviewAs(emp, 'self');
+    const canEditL1 = canReviewAs(emp, 'l1') && status !== 'Draft';
+    const canEditL2 = canReviewAs(emp, 'l2') && (status.includes('L1') || status.includes('L2'));
     container.innerHTML = `
         <div class="animate-fade-in space-y-6 md:space-y-8">
             <h1 class="text-xl md:text-2xl font-black text-slate-800">KSA Assessment: ${emp.name}</h1>
@@ -984,21 +1202,21 @@ function renderKsa(container, emp) {
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 relative z-10">
                         <div class="space-y-4">
                             <label class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Self Evaluation</label>
-                            <select ${store.currentUser.role !== 'employee' ? 'disabled' : ''} onchange="setKsa('${key}', 'rating', 'self', this.value)" class="w-full p-4 border rounded-2xl font-black text-indigo-700 text-sm">
+                            <select ${!canEditSelf ? 'disabled' : ''} onchange="setKsa('${key}', 'rating', 'self', this.value)" class="w-full p-4 border rounded-2xl font-black text-indigo-700 text-sm">
                                 ${[0, 1, 2, 3, 4, 5].map(v => `<option value="${v}" ${data.self.rating == v ? 'selected' : ''}>${v || 'Rate'}</option>`).join('')}
                             </select>
-                            <textarea ${store.currentUser.role !== 'employee' ? 'disabled' : ''} onblur="setKsa('${key}', 'justification', 'self', this.value)" class="w-full p-4 border rounded-2xl text-sm h-32 bg-slate-50/10">${data.self.justification}</textarea>
+                            <textarea ${!canEditSelf ? 'disabled' : ''} onblur="setKsa('${key}', 'justification', 'self', this.value)" class="w-full p-4 border rounded-2xl text-sm h-32 bg-slate-50/10">${data.self.justification}</textarea>
                         </div>
-                        <div class="space-y-4 ${store.currentUser.role === 'employee' ? 'opacity-40 pointer-events-none' : ''}">
+                        <div class="space-y-4 ${!canEditL1 ? 'opacity-40 pointer-events-none' : ''}">
                             <label class="text-[10px] font-black text-indigo-500 uppercase tracking-widest">L1 Feedback</label>
-                            <select ${store.currentUser.role !== 'l1' ? 'disabled' : ''} onchange="setKsa('${key}', 'rating', 'l1', this.value)" class="w-full p-4 border border-indigo-100 rounded-2xl font-black bg-indigo-50/10 text-sm">
+                            <select ${!canEditL1 ? 'disabled' : ''} onchange="setKsa('${key}', 'rating', 'l1', this.value)" class="w-full p-4 border border-indigo-100 rounded-2xl font-black bg-indigo-50/10 text-sm">
                                 ${[0, 1, 2, 3, 4, 5].map(v => `<option value="${v}" ${data.l1.rating == v ? 'selected' : ''}>${v || 'Rate'}</option>`).join('')}
                             </select>
-                            <textarea ${store.currentUser.role !== 'l1' ? 'disabled' : ''} onblur="setKsa('${key}', 'comments', 'l1', this.value)" class="w-full p-4 border border-indigo-100 rounded-2xl text-sm h-32 bg-indigo-50/10">${data.l1.comments}</textarea>
+                            <textarea ${!canEditL1 ? 'disabled' : ''} onblur="setKsa('${key}', 'comments', 'l1', this.value)" class="w-full p-4 border border-indigo-100 rounded-2xl text-sm h-32 bg-indigo-50/10">${data.l1.comments}</textarea>
                         </div>
-                        <div class="space-y-4 ${store.currentUser.role !== 'l2' ? 'opacity-40 pointer-events-none' : ''}">
+                        <div class="space-y-4 ${!canEditL2 ? 'opacity-40 pointer-events-none' : ''}">
                             <label class="text-[10px] font-black text-emerald-500 uppercase tracking-widest">L2 Final</label>
-                            <select onchange="setKsa('${key}', 'rating', 'l2', this.value)" class="w-full p-4 border border-emerald-100 rounded-2xl font-black bg-emerald-50/10 text-emerald-700 text-sm">
+                            <select ${!canEditL2 ? 'disabled' : ''} onchange="setKsa('${key}', 'rating', 'l2', this.value)" class="w-full p-4 border border-emerald-100 rounded-2xl font-black bg-emerald-50/10 text-emerald-700 text-sm">
                                 ${[0, 1, 2, 3, 4, 5].map(v => `<option value="${v}" ${data.l2.rating == v ? 'selected' : ''}>${v || 'Rate'}</option>`).join('')}
                             </select>
                             <div class="p-6 bg-emerald-50/50 border border-emerald-100 rounded-2xl text-[10px] text-emerald-700/60 font-bold italic">L2 finalizes competence score.</div>
