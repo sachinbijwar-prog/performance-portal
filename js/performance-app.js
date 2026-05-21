@@ -267,14 +267,39 @@ async function loadFromCloud() {
         if (doc.exists) {
             store = doc.data();
             // MIGRATION: Ensure new sections exist for existing data
+            let added = false;
             Object.values(store.employees).forEach(emp => {
-                if (!emp.coe) emp.coe = JSON.parse(JSON.stringify(COE_TEMPLATE));
-                if (!emp.certifications) emp.certifications = JSON.parse(JSON.stringify(CERT_TEMPLATE));
+                if (!emp.coe || emp.coe.length === 0) { emp.coe = JSON.parse(JSON.stringify(COE_TEMPLATE)); added = true; }
+                if (!emp.certifications || emp.certifications.length === 0) { emp.certifications = JSON.parse(JSON.stringify(CERT_TEMPLATE)); added = true; }
+                if (!emp.kras || emp.kras.length === 0) { emp.kras = JSON.parse(JSON.stringify(KRA_TEMPLATE)); added = true; }
+                if (!emp.ksa || Object.keys(emp.ksa).length === 0) { emp.ksa = JSON.parse(JSON.stringify(KSA_TEMPLATE)); added = true; }
+                // Ensure every KRA has all required sub-fields
+                (emp.kras || []).forEach(k => {
+                    if (!k.self) { k.self = { rating: 0, justification: '' }; added = true; }
+                    if (!k.l1)   { k.l1   = { rating: 0, comments: '' };     added = true; }
+                    if (!k.l2)   { k.l2   = { rating: 0 };                   added = true; }
+                });
+                // Ensure every KSA key has all required sub-fields
+                Object.keys(emp.ksa || {}).forEach(key => {
+                    const k = emp.ksa[key];
+                    if (!k.self) { k.self = { rating: 0, justification: '' }; added = true; }
+                    if (!k.l1)   { k.l1   = { rating: 0, comments: '' };     added = true; }
+                    if (!k.l2)   { k.l2   = { rating: 0 };                   added = true; }
+                });
+                // Ensure every CoE entry has all required sub-fields
+                (emp.coe || []).forEach(c => {
+                    if (!c.self) { c.self = { description: '', link: '' };    added = true; }
+                    if (!c.l1)   { c.l1   = { comments: '', rating: 0 };     added = true; }
+                });
+                // Ensure every Certification entry has all required sub-fields
+                (emp.certifications || []).forEach(c => {
+                    if (!c.self) { c.self = { name: '', date: '', link: '' }; added = true; }
+                    if (!c.l1)   { c.l1   = { rating: 0 };                   added = true; }
+                });
                 if (!emp.role) emp.role = emp.id.includes('emp') ? 'employee' : 'l1';
             });
             
             // MERGE NEW EMPLOYEES IF MISSING (using canonical employee list)
-            let added = false;
             RAW_EMPLOYEE_DATA.forEach((data) => {
                 const name = data[0];
                 const roleStr = data[1];
