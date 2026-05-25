@@ -278,13 +278,24 @@ async function loadFromCloud() {
             store = doc.data();
             // MIGRATION: Ensure new sections exist for existing data
             let added = false;
+            const NEW_KRA_IDS = new Set(['kra-1','kra-2','kra-3','kra-4','kra-5','kra-6','kra-7','kra-8','kra-9','kra-10']);
+            const NEW_KSA_KEYS = new Set(['dataEngPlatforms','toolsExpertise','codingProficiency','communication','timeManagement','learningAgility','analyticalThinking','certifications']);
+
             Object.values(store.employees).forEach(emp => {
-                // FORCE-REPLACE KRAs and KSAs with new 2026 templates for all employees
-                emp.kras = JSON.parse(JSON.stringify(KRA_TEMPLATE));
-                emp.ksa  = JSON.parse(JSON.stringify(KSA_TEMPLATE));
-                added = true;
-                if (!emp.coe || emp.coe.length === 0) { emp.coe = JSON.parse(JSON.stringify(COE_TEMPLATE)); }
-                if (!emp.certifications || emp.certifications.length === 0) { emp.certifications = JSON.parse(JSON.stringify(CERT_TEMPLATE)); }
+                // Check if KRAs are on the NEW template already (by count and IDs)
+                const hasNewKras = emp.kras && emp.kras.length === 10 && emp.kras.every(k => NEW_KRA_IDS.has(k.id));
+                if (!hasNewKras) {
+                    emp.kras = JSON.parse(JSON.stringify(KRA_TEMPLATE));
+                    added = true;
+                }
+                // Check if KSAs are on the NEW template already (by keys)
+                const hasNewKsa = emp.ksa && Object.keys(emp.ksa).length === 8 && Object.keys(emp.ksa).every(k => NEW_KSA_KEYS.has(k));
+                if (!hasNewKsa) {
+                    emp.ksa = JSON.parse(JSON.stringify(KSA_TEMPLATE));
+                    added = true;
+                }
+                if (!emp.coe || emp.coe.length === 0) { emp.coe = JSON.parse(JSON.stringify(COE_TEMPLATE)); added = true; }
+                if (!emp.certifications || emp.certifications.length === 0) { emp.certifications = JSON.parse(JSON.stringify(CERT_TEMPLATE)); added = true; }
                 if (!emp.role) emp.role = emp.id.includes('emp') ? 'employee' : 'l1';
             });
             
@@ -571,14 +582,14 @@ window.setKra = (id, field, role, val) => {
     const emp = store.employees[store.selectedEmployeeId];
     if (!canReviewAs(emp, role)) return showNote("You are not mapped to edit this section.");
     store.employees[store.selectedEmployeeId].kras.find(x => x.id === id)[role][field] = field === 'rating' ? parseInt(val) : val;
-    save(); render();
+    if (field === 'rating') { save(); render(); } else { save(); }
 };
 
 window.setKsa = (key, field, role, val) => {
     const emp = store.employees[store.selectedEmployeeId];
     if (!canReviewAs(emp, role)) return showNote("You are not mapped to edit this section.");
     store.employees[store.selectedEmployeeId].ksa[key][role][field] = field === 'rating' ? parseInt(val) : val;
-    save(); render();
+    if (field === 'rating') { save(); render(); } else { save(); }
 };
 
 let currentView = 'dashboard';
@@ -976,7 +987,7 @@ window.setCoe = (id, field, role, val) => {
     if (!canReviewAs(emp, role)) return showNote("You are not mapped to edit this section.");
     const parsedVal = (field === 'rating') ? parseInt(val) : val;
     store.employees[store.selectedEmployeeId].coe.find(x => x.id === id)[role][field] = parsedVal;
-    save(); render();
+    if (field === 'rating') { save(); render(); } else { save(); }
 };
 
 window.setCertifications = (id, field, role, val) => {
@@ -984,7 +995,7 @@ window.setCertifications = (id, field, role, val) => {
     if (!canReviewAs(emp, role)) return showNote("You are not mapped to edit this section.");
     const parsedVal = (field === 'rating') ? parseInt(val) : val;
     store.employees[store.selectedEmployeeId].certifications.find(x => x.id === id)[role][field] = parsedVal;
-    save(); render();
+    if (field === 'rating') { save(); render(); } else { save(); }
 };
 
 function renderDashboard(container) {
@@ -1434,6 +1445,5 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    loadFromCloud(); // INITIAL SYNC
     lucide.createIcons();
 });
