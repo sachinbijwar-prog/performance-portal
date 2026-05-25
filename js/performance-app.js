@@ -19,17 +19,27 @@ const db = firebase.firestore();
 
 // --- DATA TEMPLATES ---
 const KRA_TEMPLATE = [
-    { id: 'kra-1', title: 'Technical Excellence & Architecture', weightage: 40, self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } },
-    { id: 'kra-2', title: 'Team Mentorship & Growth', weightage: 30, self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } },
-    { id: 'kra-3', title: 'Agile Delivery', weightage: 30, self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } }
+    { id: 'kra-1',  title: 'Code Quality, Standards & Best Practices',       weightage: 15, self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } },
+    { id: 'kra-2',  title: 'Process Discipline',                              weightage: 15, self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } },
+    { id: 'kra-3',  title: 'Delivery Excellence',                             weightage: 10, self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } },
+    { id: 'kra-4',  title: 'Data Pipeline Reliability',                       weightage: 10, self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } },
+    { id: 'kra-5',  title: 'Technical Expertise (Architecture Contribution)', weightage: 10, self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } },
+    { id: 'kra-6',  title: 'Collaboration',                                   weightage: 10, self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } },
+    { id: 'kra-7',  title: 'Planning & Utilization',                          weightage: 10, self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } },
+    { id: 'kra-8',  title: 'Escalation Management & Risk Mitigation',         weightage: 10, self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } },
+    { id: 'kra-9',  title: 'Continuous Improvement',                          weightage:  5, self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } },
+    { id: 'kra-10', title: 'Team Contribution',                               weightage:  5, self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } }
 ];
 
 const KSA_TEMPLATE = {
-    technical: { label: 'Technical Skills', self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } },
-    problemSolving: { label: 'Problem Solving', self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } },
-    communication: { label: 'Communication', self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } },
-    collaboration: { label: 'Collaboration', self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } },
-    ownership: { label: 'Ownership', self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } }
+    dataEngPlatforms:  { label: 'Technical Proficiency in Data Engineering Platforms', weightage: 20, self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } },
+    toolsExpertise:    { label: 'Tools & Software Expertise',                          weightage: 20, self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } },
+    codingProficiency: { label: 'Coding & Scripting Proficiency',                      weightage: 20, self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } },
+    communication:     { label: 'Communication Skills',                                weightage: 10, self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } },
+    timeManagement:    { label: 'Time Management (Discipline)',                        weightage: 10, self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } },
+    learningAgility:   { label: 'Learning Agility',                                    weightage: 10, self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } },
+    analyticalThinking:{ label: 'Analytical Thinking',                                 weightage:  5, self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } },
+    certifications:    { label: 'Professional Certifications',                         weightage:  5, self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } }
 };
 
 const COE_TEMPLATE = [
@@ -269,33 +279,12 @@ async function loadFromCloud() {
             // MIGRATION: Ensure new sections exist for existing data
             let added = false;
             Object.values(store.employees).forEach(emp => {
-                if (!emp.coe || emp.coe.length === 0) { emp.coe = JSON.parse(JSON.stringify(COE_TEMPLATE)); added = true; }
-                if (!emp.certifications || emp.certifications.length === 0) { emp.certifications = JSON.parse(JSON.stringify(CERT_TEMPLATE)); added = true; }
-                if (!emp.kras || emp.kras.length === 0) { emp.kras = JSON.parse(JSON.stringify(KRA_TEMPLATE)); added = true; }
-                if (!emp.ksa || Object.keys(emp.ksa).length === 0) { emp.ksa = JSON.parse(JSON.stringify(KSA_TEMPLATE)); added = true; }
-                // Ensure every KRA has all required sub-fields
-                (emp.kras || []).forEach(k => {
-                    if (!k.self) { k.self = { rating: 0, justification: '' }; added = true; }
-                    if (!k.l1)   { k.l1   = { rating: 0, comments: '' };     added = true; }
-                    if (!k.l2)   { k.l2   = { rating: 0 };                   added = true; }
-                });
-                // Ensure every KSA key has all required sub-fields
-                Object.keys(emp.ksa || {}).forEach(key => {
-                    const k = emp.ksa[key];
-                    if (!k.self) { k.self = { rating: 0, justification: '' }; added = true; }
-                    if (!k.l1)   { k.l1   = { rating: 0, comments: '' };     added = true; }
-                    if (!k.l2)   { k.l2   = { rating: 0 };                   added = true; }
-                });
-                // Ensure every CoE entry has all required sub-fields
-                (emp.coe || []).forEach(c => {
-                    if (!c.self) { c.self = { description: '', link: '' };    added = true; }
-                    if (!c.l1)   { c.l1   = { comments: '', rating: 0 };     added = true; }
-                });
-                // Ensure every Certification entry has all required sub-fields
-                (emp.certifications || []).forEach(c => {
-                    if (!c.self) { c.self = { name: '', date: '', link: '' }; added = true; }
-                    if (!c.l1)   { c.l1   = { rating: 0 };                   added = true; }
-                });
+                // FORCE-REPLACE KRAs and KSAs with new 2026 templates for all employees
+                emp.kras = JSON.parse(JSON.stringify(KRA_TEMPLATE));
+                emp.ksa  = JSON.parse(JSON.stringify(KSA_TEMPLATE));
+                added = true;
+                if (!emp.coe || emp.coe.length === 0) { emp.coe = JSON.parse(JSON.stringify(COE_TEMPLATE)); }
+                if (!emp.certifications || emp.certifications.length === 0) { emp.certifications = JSON.parse(JSON.stringify(CERT_TEMPLATE)); }
                 if (!emp.role) emp.role = emp.id.includes('emp') ? 'employee' : 'l1';
             });
             
@@ -462,11 +451,23 @@ function getTeamStats() {
 }
 
 function calculateScores(emp) {
+    // KRA: weighted sum (each KRA has its own weightage, total = 100%)
     let kraSum = 0;
-    (emp.kras || []).forEach(k => { const r = (k.l1.rating + k.l2.rating) / 2 || 0; kraSum += r * (k.weightage / 100); });
-    let ksaSum = 0;
-    Object.values(emp.ksa || {}).forEach(k => { ksaSum += (k.l1.rating + k.l2.rating) / 2 || 0; });
-    const avgKsa = ksaSum / 5;
+    (emp.kras || []).forEach(k => {
+        const r = (k.l1.rating + k.l2.rating) / 2 || 0;
+        kraSum += r * (k.weightage / 100);
+    });
+    // KSA: weighted average (each KSA has its own weightage, total = 100%)
+    let ksaWeightedSum = 0;
+    let ksaTotalWeight = 0;
+    Object.values(emp.ksa || {}).forEach(k => {
+        const w = k.weightage || 0;
+        const r = (k.l1.rating + k.l2.rating) / 2 || 0;
+        ksaWeightedSum += r * (w / 100);
+        ksaTotalWeight += w;
+    });
+    // Normalise in case weights don't sum to exactly 100
+    const avgKsa = ksaTotalWeight > 0 ? (ksaWeightedSum / ksaTotalWeight) * 100 : 0;
     const final = (kraSum * 0.7) + (avgKsa * 0.3);
     return { kra: kraSum.toFixed(2), ksa: avgKsa.toFixed(2), final: final.toFixed(2) };
 }
@@ -1114,6 +1115,29 @@ function renderKra(container, emp) {
     const canEditSelf = canReviewAs(emp, 'self');
     const canEditL1 = canReviewAs(emp, 'l1') && status !== 'Draft';
     const canEditL2 = canReviewAs(emp, 'l2') && (status.includes('L1') || status.includes('L2'));
+
+    const KRA_DESC = {
+        'kra-1':  'Writing clean, modular, reusable, and well-documented code; adherence to coding standards; maintaining low defect rates; ensuring peer-review readiness.',
+        'kra-2':  'Effective participation in ALM process, accurate estimation, commitment adherence, and predictable delivery velocity.',
+        'kra-3':  'Ownership of assigned tasks, on-time delivery, and maintaining a high success rate across development, testing, and deployment activities.',
+        'kra-4':  'Ensuring stable ETL pipelines or data processes, proactive monitoring, quick resolution of failures, and minimizing production incidents.',
+        'kra-5':  'Applying strong data engineering fundamentals, contributing to data-warehouse architecture decisions, optimizing performance, and improving system scalability.',
+        'kra-6':  'Clear communication with stakeholders (Business User, ADM partners and leads, Operations, Infra), timely updates, and effective collaboration within the team.',
+        'kra-7':  'Ability to prioritize tasks based on impact, manage workload efficiently, and optimize use of available tools and resources.',
+        'kra-8':  'Raising blockers early, managing dependencies, preventing delays, and ensuring smooth project flow through timely escalation.',
+        'kra-9':  'Adopting new tools/technologies, improving processes, staying updated with modern data engineering practices, and applying learnings to real work.',
+        'kra-10': 'Supporting peers, mentoring juniors, conducting knowledge-sharing sessions, and contributing to team growth and culture.'
+    };
+    const COE_DESC = {
+        'coe-1': 'Tech talks, internal workshops, or documentation you led or contributed to.',
+        'coe-2': 'Reusable components, scripts, templates, or tools built to improve team productivity.',
+        'coe-3': 'Initiatives that improved team workflows, reduced manual effort, or increased delivery quality.'
+    };
+    const CERT_DESC = {
+        'cert-1': 'Cloud, DevOps, programming, or platform certifications relevant to your role.',
+        'cert-2': 'Management, agile, domain-specific, or soft-skill certifications completed this cycle.'
+    };
+
     container.innerHTML = `
         <div class="animate-fade-in space-y-6 md:space-y-8">
             <div class="flex items-center justify-between">
@@ -1133,6 +1157,7 @@ function renderKra(container, emp) {
                         <div>
                             <h3 class="text-base md:text-lg font-black text-slate-800">${k.title}</h3>
                             <p class="text-[10px] text-slate-500 uppercase font-black tracking-widest mt-1">Key Result Area</p>
+                            <p class="text-xs text-slate-400 font-medium mt-2 max-w-lg">${KRA_DESC[k.id] || ''}</p>
                         </div>
                         <div class="px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-xl font-black text-xs">
                             ${k.weightage}% Weight
@@ -1161,6 +1186,7 @@ function renderKra(container, emp) {
                         <div class="p-6 bg-emerald-50/50 border border-emerald-100 rounded-2xl text-[10px] text-emerald-700/60 font-bold italic">L2 provides ultimate sign-off. Score is final.</div>
                     </div>
                 </div>
+                </div>
             `).join('')}
 
             <h2 class="text-base md:text-lg font-black text-slate-800 flex items-center gap-3 mt-10 md:mt-16 mb-4">
@@ -1175,6 +1201,7 @@ function renderKra(container, emp) {
                     <div class="mb-6 pb-4 border-b border-slate-100 relative z-10">
                         <h3 class="text-base md:text-lg font-black text-slate-800">${c.title}</h3>
                         <p class="text-[10px] text-slate-500 uppercase font-black tracking-widest mt-1">Center of Excellence</p>
+                        <p class="text-xs text-slate-400 font-medium mt-2">${COE_DESC[c.id] || ''}</p>
                     </div>
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 relative z-10">
                         <div class="space-y-4">
@@ -1207,6 +1234,7 @@ function renderKra(container, emp) {
                     <div class="mb-8 pb-4 border-b border-slate-100 relative z-10">
                         <h3 class="text-base md:text-lg font-black text-slate-800">${c.title}</h3>
                         <p class="text-[10px] text-slate-400 uppercase font-black tracking-widest mt-1">Professional Recognition</p>
+                        <p class="text-xs text-slate-400 font-medium mt-2">${CERT_DESC[c.id] || ''}</p>
                     </div>
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-10 relative z-10">
                         <div class="space-y-4">
@@ -1241,6 +1269,18 @@ function renderKsa(container, emp) {
     const canEditSelf = canReviewAs(emp, 'self');
     const canEditL1 = canReviewAs(emp, 'l1') && status !== 'Draft';
     const canEditL2 = canReviewAs(emp, 'l2') && (status.includes('L1') || status.includes('L2'));
+
+    const KSA_DESC = {
+        dataEngPlatforms:   'Strong hands-on skills in the primary data platform (CDP - HDFS, Hive, Impala, Spark, Yarn, Kerberos) including storage, compute, cluster navigation, performance tuning and troubleshooting.',
+        toolsExpertise:     'Hands-on expertise in Informatica for ETL development and strong understanding of downstream BI/reporting tools like SAP BO and Tableau.',
+        codingProficiency:  'Strong command over SQL, Python, Java; ability to write optimized, scalable, and maintainable code for data pipelines and transformations.',
+        communication:      'Clear and structured communication — written and verbal — especially when explaining technical concepts, documenting work, or interacting with stakeholders.',
+        timeManagement:     'Ability to manage workload effectively, maintain compliance with processes, follow standards, and demonstrate reliability in day-to-day execution.',
+        learningAgility:    'Ability to quickly learn new tools, adapt to evolving technologies, and proactively pursue certifications or training relevant to data engineering.',
+        analyticalThinking: 'Ability to diagnose complex data issues, debug pipeline failures, analyze root causes, and design efficient solutions.',
+        certifications:     'Relevant certifications in cloud platforms, data engineering, or ETL tools that enhance technical credibility and domain expertise.'
+    };
+
     container.innerHTML = `
         <div class="animate-fade-in space-y-6 md:space-y-8">
             <h1 class="text-xl md:text-2xl font-black text-slate-800">KSA Assessment: ${emp.name}</h1>
@@ -1249,9 +1289,13 @@ function renderKsa(container, emp) {
                     <div class="absolute -top-4 -right-4 w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center text-3xl font-black text-slate-200 pointer-events-none">
                         ${String(idx + 1).padStart(2, '0')}
                     </div>
-                    <div class="mb-6 pb-4 border-b border-slate-100 relative z-10">
-                        <h3 class="text-base md:text-lg font-black text-slate-800">${data.label}</h3>
-                        <p class="text-[10px] text-slate-500 uppercase font-black tracking-widest mt-1">Core Competency</p>
+                    <div class="mb-6 pb-4 border-b border-slate-100 relative z-10 flex items-start justify-between">
+                        <div>
+                            <h3 class="text-base md:text-lg font-black text-slate-800">${data.label}</h3>
+                            <p class="text-[10px] text-slate-500 uppercase font-black tracking-widest mt-1">Core Competency</p>
+                            <p class="text-xs text-slate-400 font-medium mt-2 max-w-lg">${KSA_DESC[key] || ''}</p>
+                        </div>
+                        <div class="px-3 py-1.5 bg-purple-50 text-purple-700 rounded-xl font-black text-xs whitespace-nowrap ml-4">${data.weightage || 0}% Weight</div>
                     </div>
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 relative z-10">
                         <div class="space-y-4">
