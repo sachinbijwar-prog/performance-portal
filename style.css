@@ -311,6 +311,37 @@ select:focus, input:focus, textarea:focus {
     #ai-suggestion .glass-card {
         max-width: none;
     }
+
+    .employee-review-card-main {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    .employee-review-actions {
+        width: 100%;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.75rem !important;
+    }
+
+    .employee-score-strip {
+        width: 100%;
+        display: grid !important;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.5rem;
+        padding: 0.75rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.75rem;
+        background: #f8fafc;
+    }
+
+    .employee-score-strip > div {
+        min-width: 0;
+    }
+
+    .employee-score-strip > div:last-child {
+        padding: 0.5rem;
+    }
 }
 
 /* Premium Mobile Table to Card Transformation */

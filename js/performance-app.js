@@ -1124,11 +1124,11 @@ function renderDashboardResults(container) {
     container.innerHTML = filteredEmployees
         .map(e => {
             const s = calculateScores(e);
-            const isL2 = store.currentUser.role === 'l2';
+            const canViewScores = ['l2', 'admin'].includes(store.currentUser.role);
             const status = getStatus(e);
             return `
-                <div class="glass-card p-0 overflow-hidden hover:scale-[1.01] transition-all border border-slate-100 shadow-sm animate-fade-in">
-                    <div class="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white">
+                <div class="employee-review-card glass-card p-0 overflow-hidden hover:scale-[1.01] transition-all border border-slate-100 shadow-sm animate-fade-in">
+                    <div class="employee-review-card-main p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white">
                         <div class="flex items-center space-x-4">
                             <div class="w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center text-white font-black flex-shrink-0">${e.icon}</div>
                             <div class="min-w-0">
@@ -1137,9 +1137,9 @@ function renderDashboardResults(container) {
                                 <p class="text-[9px] text-slate-400 uppercase font-bold truncate mt-1">L1: ${e.l1ManagerName || 'NA'} | L2: ${e.l2ManagerName || 'NA'}</p>
                             </div>
                         </div>
-                        <div class="flex flex-wrap sm:flex-nowrap items-center justify-between sm:justify-end gap-4 sm:space-x-6">
-                            ${isL2 ? `
-                                <div class="flex space-x-4 px-4 sm:border-l border-slate-200">
+                        <div class="employee-review-actions flex flex-wrap sm:flex-nowrap items-center justify-between sm:justify-end gap-4 sm:space-x-6">
+                            ${canViewScores ? `
+                                <div class="employee-score-strip flex space-x-4 px-4 sm:border-l border-slate-200">
                                     <div class="text-center font-bold"><p class="text-[8px] text-slate-400 uppercase">KRA</p><p class="text-sm">${s.kra}</p></div>
                                     <div class="text-center font-bold"><p class="text-[8px] text-slate-400 uppercase">KSA</p><p class="text-sm">${s.ksa}</p></div>
                                     <div class="text-center h-full px-3 py-1 bg-slate-900 rounded-lg text-white font-black"><p class="text-[7px] text-slate-500 uppercase">FINAL</p><p class="text-sm">${s.final}</p></div>
