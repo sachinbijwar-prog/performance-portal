@@ -494,10 +494,16 @@ function getTeamStats() {
 }
 
 function calculateScores(emp) {
+    const averageCompletedManagerRatings = (l1Rating = 0, l2Rating = 0) => {
+        const completedRatings = [Number(l1Rating) || 0, Number(l2Rating) || 0].filter(rating => rating > 0);
+        if (!completedRatings.length) return 0;
+        return completedRatings.reduce((sum, rating) => sum + rating, 0) / completedRatings.length;
+    };
+
     // KRA: weighted sum (each KRA has its own weightage, total = 100%)
     let kraSum = 0;
     (emp.kras || []).forEach(k => {
-        const r = (k.l1.rating + k.l2.rating) / 2 || 0;
+        const r = averageCompletedManagerRatings(k.l1.rating, k.l2.rating);
         kraSum += r * (k.weightage / 100);
     });
     // KSA: weighted average (each KSA has its own weightage, total = 100%)
@@ -505,7 +511,7 @@ function calculateScores(emp) {
     let ksaTotalWeight = 0;
     Object.values(emp.ksa || {}).forEach(k => {
         const w = k.weightage || 0;
-        const r = (k.l1.rating + k.l2.rating) / 2 || 0;
+        const r = averageCompletedManagerRatings(k.l1.rating, k.l2.rating);
         ksaWeightedSum += r * (w / 100);
         ksaTotalWeight += w;
     });
