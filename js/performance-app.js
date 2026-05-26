@@ -421,21 +421,53 @@ window.submitReview = () => {
     
     let newStatus = "";
     let submitRole = "";
+
     if (canReviewAs(emp, 'self')) {
+        // Validate: all KRA ratings + justifications filled
+        const missingKra = (emp.kras || []).filter(k => k.self.rating === 0 || !k.self.justification.trim());
+        const missingKsa = Object.entries(emp.ksa || {}).filter(([, k]) => k.self.rating === 0 || !k.self.justification.trim());
+        if (missingKra.length > 0) {
+            return showNote(`Please complete all KRA ratings and justifications. Missing: ${missingKra.map(k => k.title).join(', ')}`);
+        }
+        if (missingKsa.length > 0) {
+            return showNote(`Please complete all KSA ratings and justifications. Missing: ${missingKsa.map(([, k]) => k.label).join(', ')}`);
+        }
         newStatus = "Self-Completed";
         submitRole = "self";
+
     } else if (canReviewAs(emp, 'l1')) {
         if (status === 'Draft') return showNote("Self evaluation must be submitted before L1 review.");
+        // Validate: all KRA + KSA L1 ratings filled
+        const missingKra = (emp.kras || []).filter(k => k.l1.rating === 0);
+        const missingKsa = Object.entries(emp.ksa || {}).filter(([, k]) => k.l1.rating === 0);
+        if (missingKra.length > 0) {
+            return showNote(`Please rate all KRAs before submitting L1 review. Missing: ${missingKra.map(k => k.title).join(', ')}`);
+        }
+        if (missingKsa.length > 0) {
+            return showNote(`Please rate all KSAs before submitting L1 review. Missing: ${missingKsa.map(([, k]) => k.label).join(', ')}`);
+        }
         newStatus = "L1-Approved";
         submitRole = "l1";
+
     } else if (canReviewAs(emp, 'l2')) {
         if (!(status === 'L1 Completed' || status === 'L1-Approved' || status === 'L2 Completed' || status === 'L2-Finalized')) {
             return showNote("L1 review must be submitted before L2 finalization.");
         }
+        // Validate: all KRA + KSA L2 ratings filled
+        const missingKra = (emp.kras || []).filter(k => k.l2.rating === 0);
+        const missingKsa = Object.entries(emp.ksa || {}).filter(([, k]) => k.l2.rating === 0);
+        if (missingKra.length > 0) {
+            return showNote(`Please rate all KRAs before L2 finalization. Missing: ${missingKra.map(k => k.title).join(', ')}`);
+        }
+        if (missingKsa.length > 0) {
+            return showNote(`Please rate all KSAs before L2 finalization. Missing: ${missingKsa.map(([, k]) => k.label).join(', ')}`);
+        }
         newStatus = "L2-Finalized";
         submitRole = "l2";
+
+    } else {
+        return showNote(store.currentUser.role === 'admin' ? "Administrators cannot submit appraisal reviews." : "You are not mapped to submit this review.");
     }
-    else return showNote(store.currentUser.role === 'admin' ? "Administrators cannot submit appraisal reviews." : "You are not mapped to submit this review.");
 
     if (confirm(`Are you sure you want to officially submit this evaluation as ${newStatus}?`)) {
         emp.statusOverride = newStatus;
@@ -444,7 +476,7 @@ window.submitReview = () => {
         
         save();
         render();
-        showNote(`Appraisal officially submitted as ${newStatus}.`);
+        showNote(`Review Submitted — ${newStatus}.`);
     }
 };
 
