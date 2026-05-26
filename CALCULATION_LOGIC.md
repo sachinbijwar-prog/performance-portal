@@ -21,10 +21,10 @@ Each KRA has an individual weightage. The score for each KRA is the average of L
 | :--- | :--- | :--- |
 | 1 | Code Quality, Standards & Best Practices | 15% |
 | 2 | Process Discipline | 15% |
-| 3 | Delivery Excellence | 10% |
+| 3 | Delivery Excellence | 15% |
 | 4 | Data Pipeline Reliability | 10% |
 | 5 | Technical Expertise (Architecture Contribution) | 10% |
-| 6 | Collaboration | 10% |
+| 6 | Collaboration | 5% |
 | 7 | Planning & Utilization | 10% |
 | 8 | Escalation Management & Risk Mitigation | 10% |
 | 9 | Continuous Improvement | 5% |

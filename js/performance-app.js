@@ -21,10 +21,10 @@ const db = firebase.firestore();
 const KRA_TEMPLATE = [
     { id: 'kra-1',  title: 'Code Quality, Standards & Best Practices',       weightage: 15, self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } },
     { id: 'kra-2',  title: 'Process Discipline',                              weightage: 15, self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } },
-    { id: 'kra-3',  title: 'Delivery Excellence',                             weightage: 10, self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } },
+    { id: 'kra-3',  title: 'Delivery Excellence',                             weightage: 15, self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } },
     { id: 'kra-4',  title: 'Data Pipeline Reliability',                       weightage: 10, self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } },
     { id: 'kra-5',  title: 'Technical Expertise (Architecture Contribution)', weightage: 10, self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } },
-    { id: 'kra-6',  title: 'Collaboration',                                   weightage: 10, self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } },
+    { id: 'kra-6',  title: 'Collaboration',                                   weightage:  5, self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } },
     { id: 'kra-7',  title: 'Planning & Utilization',                          weightage: 10, self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } },
     { id: 'kra-8',  title: 'Escalation Management & Risk Mitigation',         weightage: 10, self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } },
     { id: 'kra-9',  title: 'Continuous Improvement',                          weightage:  5, self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } },
@@ -41,6 +41,8 @@ const KSA_TEMPLATE = {
     analyticalThinking:{ label: 'Analytical Thinking',                                 weightage:  5, self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } },
     certifications:    { label: 'Professional Certifications',                         weightage:  5, self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } }
 };
+
+const KRA_TEMPLATE_BY_ID = Object.fromEntries(KRA_TEMPLATE.map(kra => [kra.id, kra]));
 
 const COE_TEMPLATE = [
     { id: 'coe-1', title: 'Knowledge Sharing Session', self: { description: '', link: '' }, l1: { comments: '', rating: 0 } },
@@ -287,6 +289,16 @@ async function loadFromCloud() {
                 if (!hasNewKras) {
                     emp.kras = JSON.parse(JSON.stringify(KRA_TEMPLATE));
                     added = true;
+                } else {
+                    emp.kras.forEach(kra => {
+                        const templateKra = KRA_TEMPLATE_BY_ID[kra.id];
+                        if (!templateKra) return;
+                        if (kra.title !== templateKra.title || kra.weightage !== templateKra.weightage) {
+                            kra.title = templateKra.title;
+                            kra.weightage = templateKra.weightage;
+                            added = true;
+                        }
+                    });
                 }
                 // Check if KSAs are on the NEW template already (by keys)
                 const hasNewKsa = emp.ksa && Object.keys(emp.ksa).length === 8 && Object.keys(emp.ksa).every(k => NEW_KSA_KEYS.has(k));
@@ -897,15 +909,10 @@ window.addUser = (id, name, role, pass) => {
     
     store.employees[id] = {
         name, role, icon: name.charAt(0), password: pass,
-        kras: [
-            { id: 'k1', title: 'Technical Excellence', weightage: 30, self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } },
-            { id: 'k2', title: 'Team Delivery', weightage: 30, self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } }
-        ],
-        ksa: {
-            p1: { label: 'Problem Solving', self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } },
-            c1: { label: 'Communication', self: { rating: 0, justification: '' }, l1: { rating: 0, comments: '' }, l2: { rating: 0 } }
-        },
-        coe: [], certifications: []
+        kras: JSON.parse(JSON.stringify(KRA_TEMPLATE)),
+        ksa: JSON.parse(JSON.stringify(KSA_TEMPLATE)),
+        coe: JSON.parse(JSON.stringify(COE_TEMPLATE)),
+        certifications: JSON.parse(JSON.stringify(CERT_TEMPLATE))
     };
     save(); render();
 };
