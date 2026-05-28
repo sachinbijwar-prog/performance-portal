@@ -896,6 +896,21 @@ window.exportIndividualCsv = (empId) => {
     showNote('Individual CSV Exported successfully!');
 };
 
+window.resetEvaluation = (id) => {
+    if (confirm(`Are you sure you want to completely erase the evaluation data for ${store.employees[id].name}?`)) {
+        const u = store.employees[id];
+        u.kras = JSON.parse(JSON.stringify(KRA_TEMPLATE));
+        u.ksa = JSON.parse(JSON.stringify(KSA_TEMPLATE));
+        u.coe = JSON.parse(JSON.stringify(COE_TEMPLATE));
+        u.certifications = JSON.parse(JSON.stringify(CERT_TEMPLATE));
+        u.statusOverride = '';
+        u.l1_reviewer = '';
+        u.l2_reviewer = '';
+        save(); render();
+        showNote(`Evaluation reset for ${u.name}`);
+    }
+};
+
 window.deleteUser = (id) => {
     if (confirm(`Delete user ${id}?`)) {
         delete store.employees[id];
@@ -1005,6 +1020,9 @@ function renderAdminResults(tbody) {
                 <td class="p-6 font-mono text-sm text-slate-500" data-label="Employee ID">${id}</td>
                 <td class="p-6 font-mono text-sm text-orange-600 font-bold" data-label="Temp Password">${u.password || '---'}</td>
                 <td class="p-6 text-right flex items-center justify-end gap-2" data-label="Actions">
+                    <button onclick="resetEvaluation('${id}')" title="Reset Evaluation" class="p-2 text-indigo-400 hover:bg-indigo-50 rounded-lg transition-all">
+                        <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+                    </button>
                     <button onclick="toggleAccess('${id}')" title="${u.isRevoked ? 'Grant Access' : 'Revoke Access'}" class="p-2 ${u.isRevoked ? 'text-emerald-500 hover:bg-emerald-50' : 'text-orange-400 hover:bg-orange-50'} rounded-lg transition-all">
                         <i data-lucide="${u.isRevoked ? 'unlock' : 'lock'}" class="w-5 h-5"></i>
                     </button>
@@ -1173,15 +1191,15 @@ function renderKra(container, emp) {
     const canEditL2 = canReviewAs(emp, 'l2') && (status.includes('L1') || status.includes('L2'));
 
     const KRA_DESC = {
-        'kra-1':  'Writing clean, modular, reusable, and well-documented code; adherence to coding standards; maintaining low defect rates; ensuring peer-review readiness.',
-        'kra-2':  'Effective participation in ALM process, accurate estimation, commitment adherence, and predictable delivery velocity.',
-        'kra-3':  'Ownership of assigned tasks, on-time delivery, and maintaining a high success rate across development, testing, and deployment activities.',
-        'kra-4':  'Ensuring stable ETL pipelines or data processes, proactive monitoring, quick resolution of failures, and minimizing production incidents.',
-        'kra-5':  'Applying strong data engineering fundamentals, contributing to data-warehouse architecture decisions, optimizing performance, and improving system scalability.',
+        'kra-1':  'Writing clean code and effective Report Design & Development, adhering to visualization and coding best practices, and maintaining low defect rates.',
+        'kra-2':  'Effective participation in processes, accurate estimation, commitment adherence, and predictable delivery velocity.',
+        'kra-3':  'Delivery Excellence & Ownership of assigned tasks, on-time delivery, and maintaining a high success rate across development, testing, and deployment activities.',
+        'kra-4':  'Ensuring stable data pipelines and Report Reliability, proactive issue handling, quick resolution of failures, and minimizing production incidents.',
+        'kra-5':  'Applying strong engineering fundamentals, Data Modeling, BI architecture decisions, optimizing performance, and demonstrating technical expertise.',
         'kra-6':  'Clear communication with stakeholders (Business User, ADM partners and leads, Operations, Infra), timely updates, and effective collaboration within the team.',
         'kra-7':  'Ability to prioritize tasks based on impact, manage workload efficiently, and optimize use of available tools and resources.',
-        'kra-8':  'Raising blockers early, managing dependencies, preventing delays, and ensuring smooth project flow through timely escalation.',
-        'kra-9':  'Adopting new tools/technologies, improving processes, staying updated with modern data engineering practices, and applying learnings to real work.',
+        'kra-8':  'Proactively handling issues, managing dependencies, preventing delays, and ensuring smooth project flow through timely escalation.',
+        'kra-9':  'Driving Innovation, improving processes, staying updated with modern practices, and applying learnings to real work.',
         'kra-10': 'Supporting peers, mentoring juniors, conducting knowledge-sharing sessions, and contributing to team growth and culture.'
     };
     const COE_DESC = {
@@ -1332,7 +1350,7 @@ function renderKsa(container, emp) {
         codingProficiency:  'Strong command over SQL, Python, Java; ability to write optimized, scalable, and maintainable code for data pipelines and transformations.',
         communication:      'Clear and structured communication — written and verbal — especially when explaining technical concepts, documenting work, or interacting with stakeholders.',
         timeManagement:     'Ability to manage workload effectively, maintain compliance with processes, follow standards, and demonstrate reliability in day-to-day execution.',
-        learningAgility:    'Ability to quickly learn new tools, adapt to evolving technologies, and proactively pursue certifications or training relevant to data engineering.',
+        learningAgility:    'Proactively upskilling, quickly learning new BI/Data tools, adapting to evolving technologies, and pursuing relevant training.',
         analyticalThinking: 'Ability to diagnose complex data issues, debug pipeline failures, analyze root causes, and design efficient solutions.',
         certifications:     'Relevant certifications in cloud platforms, data engineering, or ETL tools that enhance technical credibility and domain expertise.'
     };
