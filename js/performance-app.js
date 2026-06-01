@@ -266,6 +266,41 @@ async function save() {
     try {
         await db.collection("appraisals").doc("company_wide").set(store);
         console.log("Cloud Sync: Success");
+        
+        // --- AUDIT LOGGING ---
+        if (store.currentUser) {
+            const timestamp = new Date().toISOString();
+            const logEntry = {
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                userId: store.currentUser.id,
+                userName: store.currentUser.name,
+                role: store.currentUser.role,
+                action: "Data Saved",
+                localTime: timestamp
+            };
+            // Fire-and-forget audit log
+            db.collection("audit_logs").add(logEntry).catch(e => console.warn("Log failed:", e));
+        }
+
+        // --- AUTOMATED DAILY BACKUP ---
+        // Create a snapshot once per day (e.g., appraisals_backup/2026-06-01)
+        const dateStr = new Date().toISOString().split('T')[0];
+        const backupRef = db.collection("appraisals_backup").doc(dateStr);
+        
+        // Check if backup for today already exists in memory flag to avoid extra reads
+        if (!window.__dailyBackupDone || window.__dailyBackupDone !== dateStr) {
+            backupRef.get().then(doc => {
+                if (!doc.exists) {
+                    backupRef.set(store).then(() => {
+                        console.log("Daily Backup Created:", dateStr);
+                        window.__dailyBackupDone = dateStr;
+                    });
+                } else {
+                    window.__dailyBackupDone = dateStr;
+                }
+            }).catch(e => console.warn("Backup check failed:", e));
+        }
+        
     } catch (e) {
         console.error("Cloud Sync Error:", e);
         showNote("Sync Error! Data saved locally only.");
@@ -284,12 +319,16 @@ async function loadFromCloud() {
             const NEW_KSA_KEYS = new Set(['dataEngPlatforms','toolsExpertise','codingProficiency','communication','timeManagement','learningAgility','analyticalThinking','certifications']);
 
             Object.values(store.employees).forEach(emp => {
-                // Check if KRAs are on the NEW template already (by count and IDs)
-                const hasNewKras = emp.kras && emp.kras.length === 10 && emp.kras.every(k => NEW_KRA_IDS.has(k.id));
-                if (!hasNewKras) {
+                // --- KRA MIGRATION: Non-destructive ---
+                // Only reset if KRAs are completely missing or have wrong IDs (never wipe user data)
+                const hasKras = emp.kras && emp.kras.length > 0;
+                const hasCorrectKraIds = hasKras && emp.kras.every(k => NEW_KRA_IDS.has(k.id));
+                if (!hasKras || !hasCorrectKraIds) {
+                    // Truly missing or corrupted structure - reset to template (no user data to lose)
                     emp.kras = JSON.parse(JSON.stringify(KRA_TEMPLATE));
                     added = true;
                 } else {
+                    // Has valid KRAs - only update metadata (title/weightage), NEVER touch self/l1/l2 data
                     emp.kras.forEach(kra => {
                         const templateKra = KRA_TEMPLATE_BY_ID[kra.id];
                         if (!templateKra) return;
@@ -298,14 +337,39 @@ async function loadFromCloud() {
                             kra.weightage = templateKra.weightage;
                             added = true;
                         }
+                        // Ensure sub-objects exist (in case a field was never saved)
+                        if (!kra.self) { kra.self = { rating: 0, justification: '' }; added = true; }
+                        if (!kra.l1) { kra.l1 = { rating: 0, comments: '' }; added = true; }
+                        if (!kra.l2) { kra.l2 = { rating: 0 }; added = true; }
+                    });
+                    // Add any entirely new KRA IDs from template that don't exist in user data
+                    NEW_KRA_IDS.forEach(id => {
+                        if (!emp.kras.find(k => k.id === id)) {
+                            const tpl = KRA_TEMPLATE_BY_ID[id];
+                            if (tpl) { emp.kras.push(JSON.parse(JSON.stringify(tpl))); added = true; }
+                        }
                     });
                 }
-                // Check if KSAs are on the NEW template already (by keys)
-                const hasNewKsa = emp.ksa && Object.keys(emp.ksa).length === 8 && Object.keys(emp.ksa).every(k => NEW_KSA_KEYS.has(k));
-                if (!hasNewKsa) {
+
+                // --- KSA MIGRATION: Non-destructive ---
+                if (!emp.ksa || typeof emp.ksa !== 'object') {
                     emp.ksa = JSON.parse(JSON.stringify(KSA_TEMPLATE));
                     added = true;
+                } else {
+                    // Add only MISSING KSA keys - never overwrite existing ones with user data
+                    NEW_KSA_KEYS.forEach(key => {
+                        if (!emp.ksa[key]) {
+                            emp.ksa[key] = JSON.parse(JSON.stringify(KSA_TEMPLATE[key]));
+                            added = true;
+                        } else {
+                            // Ensure sub-objects exist
+                            if (!emp.ksa[key].self) { emp.ksa[key].self = { rating: 0, justification: '' }; added = true; }
+                            if (!emp.ksa[key].l1) { emp.ksa[key].l1 = { rating: 0, comments: '' }; added = true; }
+                            if (!emp.ksa[key].l2) { emp.ksa[key].l2 = { rating: 0 }; added = true; }
+                        }
+                    });
                 }
+
                 if (!emp.coe || emp.coe.length === 0) { emp.coe = JSON.parse(JSON.stringify(COE_TEMPLATE)); added = true; }
                 if (!emp.certifications || emp.certifications.length === 0) { emp.certifications = JSON.parse(JSON.stringify(CERT_TEMPLATE)); added = true; }
                 if (!emp.role) emp.role = emp.id.includes('emp') ? 'employee' : 'l1';
@@ -318,10 +382,12 @@ async function loadFromCloud() {
                 const username = toUserId(name);
 
                 if (!store.employees[username]) {
+                    // Truly new employee - safe to create with defaults
                     store.employees[username] = createEmployeeRecord(name, roleStr);
                     added = true;
                 } else {
-                    // Update role if it changed
+                    // Existing employee - NEVER overwrite their password or evaluation data
+                    // Only update role/designation metadata if it changed
                     let role = 'employee';
                     let designation = 'Consultant';
                     if (roleStr === 'L1 Manager') { role = 'l1'; designation = 'Manager'; }
@@ -331,6 +397,12 @@ async function loadFromCloud() {
                         store.employees[username].designation = designation;
                         added = true;
                     }
+                    // Ensure icon and name are up-to-date (non-destructive)
+                    if (!store.employees[username].icon) {
+                        store.employees[username].icon = name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
+                        added = true;
+                    }
+                    // *** CRITICAL: DO NOT TOUCH .password - user may have changed it ***
                 }
             });
 
@@ -896,21 +968,6 @@ window.exportIndividualCsv = (empId) => {
     showNote('Individual CSV Exported successfully!');
 };
 
-window.resetEvaluation = (id) => {
-    if (confirm(`Are you sure you want to completely erase the evaluation data for ${store.employees[id].name}?`)) {
-        const u = store.employees[id];
-        u.kras = JSON.parse(JSON.stringify(KRA_TEMPLATE));
-        u.ksa = JSON.parse(JSON.stringify(KSA_TEMPLATE));
-        u.coe = JSON.parse(JSON.stringify(COE_TEMPLATE));
-        u.certifications = JSON.parse(JSON.stringify(CERT_TEMPLATE));
-        u.statusOverride = '';
-        u.l1_reviewer = '';
-        u.l2_reviewer = '';
-        save(); render();
-        showNote(`Evaluation reset for ${u.name}`);
-    }
-};
-
 window.deleteUser = (id) => {
     if (confirm(`Delete user ${id}?`)) {
         delete store.employees[id];
@@ -1020,9 +1077,6 @@ function renderAdminResults(tbody) {
                 <td class="p-6 font-mono text-sm text-slate-500" data-label="Employee ID">${id}</td>
                 <td class="p-6 font-mono text-sm text-orange-600 font-bold" data-label="Temp Password">${u.password || '---'}</td>
                 <td class="p-6 text-right flex items-center justify-end gap-2" data-label="Actions">
-                    <button onclick="resetEvaluation('${id}')" title="Reset Evaluation" class="p-2 text-indigo-400 hover:bg-indigo-50 rounded-lg transition-all">
-                        <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
-                    </button>
                     <button onclick="toggleAccess('${id}')" title="${u.isRevoked ? 'Grant Access' : 'Revoke Access'}" class="p-2 ${u.isRevoked ? 'text-emerald-500 hover:bg-emerald-50' : 'text-orange-400 hover:bg-orange-50'} rounded-lg transition-all">
                         <i data-lucide="${u.isRevoked ? 'unlock' : 'lock'}" class="w-5 h-5"></i>
                     </button>
@@ -1191,15 +1245,15 @@ function renderKra(container, emp) {
     const canEditL2 = canReviewAs(emp, 'l2') && (status.includes('L1') || status.includes('L2'));
 
     const KRA_DESC = {
-        'kra-1':  'Writing clean code and effective Report Design & Development, adhering to visualization and coding best practices, and maintaining low defect rates.',
-        'kra-2':  'Effective participation in processes, accurate estimation, commitment adherence, and predictable delivery velocity.',
-        'kra-3':  'Delivery Excellence & Ownership of assigned tasks, on-time delivery, and maintaining a high success rate across development, testing, and deployment activities.',
-        'kra-4':  'Ensuring stable data pipelines and Report Reliability, proactive issue handling, quick resolution of failures, and minimizing production incidents.',
-        'kra-5':  'Applying strong engineering fundamentals, Data Modeling, BI architecture decisions, optimizing performance, and demonstrating technical expertise.',
+        'kra-1':  'Writing clean, modular, reusable, and well-documented code; adherence to coding standards; maintaining low defect rates; ensuring peer-review readiness.',
+        'kra-2':  'Effective participation in ALM process, accurate estimation, commitment adherence, and predictable delivery velocity.',
+        'kra-3':  'Ownership of assigned tasks, on-time delivery, and maintaining a high success rate across development, testing, and deployment activities.',
+        'kra-4':  'Ensuring stable ETL pipelines or data processes, proactive monitoring, quick resolution of failures, and minimizing production incidents.',
+        'kra-5':  'Applying strong data engineering fundamentals, contributing to data-warehouse architecture decisions, optimizing performance, and improving system scalability.',
         'kra-6':  'Clear communication with stakeholders (Business User, ADM partners and leads, Operations, Infra), timely updates, and effective collaboration within the team.',
         'kra-7':  'Ability to prioritize tasks based on impact, manage workload efficiently, and optimize use of available tools and resources.',
-        'kra-8':  'Proactively handling issues, managing dependencies, preventing delays, and ensuring smooth project flow through timely escalation.',
-        'kra-9':  'Driving Innovation, improving processes, staying updated with modern practices, and applying learnings to real work.',
+        'kra-8':  'Raising blockers early, managing dependencies, preventing delays, and ensuring smooth project flow through timely escalation.',
+        'kra-9':  'Adopting new tools/technologies, improving processes, staying updated with modern data engineering practices, and applying learnings to real work.',
         'kra-10': 'Supporting peers, mentoring juniors, conducting knowledge-sharing sessions, and contributing to team growth and culture.'
     };
     const COE_DESC = {
@@ -1350,7 +1404,7 @@ function renderKsa(container, emp) {
         codingProficiency:  'Strong command over SQL, Python, Java; ability to write optimized, scalable, and maintainable code for data pipelines and transformations.',
         communication:      'Clear and structured communication — written and verbal — especially when explaining technical concepts, documenting work, or interacting with stakeholders.',
         timeManagement:     'Ability to manage workload effectively, maintain compliance with processes, follow standards, and demonstrate reliability in day-to-day execution.',
-        learningAgility:    'Proactively upskilling, quickly learning new BI/Data tools, adapting to evolving technologies, and pursuing relevant training.',
+        learningAgility:    'Ability to quickly learn new tools, adapt to evolving technologies, and proactively pursue certifications or training relevant to data engineering.',
         analyticalThinking: 'Ability to diagnose complex data issues, debug pipeline failures, analyze root causes, and design efficient solutions.',
         certifications:     'Relevant certifications in cloud platforms, data engineering, or ETL tools that enhance technical credibility and domain expertise.'
     };
