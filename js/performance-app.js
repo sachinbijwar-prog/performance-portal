@@ -1113,8 +1113,8 @@ function renderAdminResults(tbody) {
                     </div>
                 </td>
                 <td class="p-6" data-label="Role">
-                    <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase ${u.role === 'admin' ? 'bg-purple-100 text-purple-700' : u.role.includes('l') ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-700'}">
-                        ${u.role}
+                    <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase ${u.role === 'admin' ? 'bg-purple-100 text-purple-700' : (u.role || '').includes('l') ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-700'}">
+                        ${u.role || 'Unknown'}
                     </span>
                 </td>
                 <td class="p-6" data-label="Status">
