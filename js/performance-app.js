@@ -258,14 +258,33 @@ applyManagerMapping();
 // --- FIREBASE SYNC FUNCTIONS ---
 
 // Update Cloud when data changes
-async function save() {
+async function save(forceFull = false) {
     // 1. Keep LocalStorage as "Emergency Backup"
     localStorage.setItem('nexgen_v5_local', JSON.stringify(store));
 
     // 2. Push to Firestore
     try {
-        await db.collection("appraisals").doc("company_wide").set(store);
-        console.log("Cloud Sync: Success");
+        if (forceFull) {
+            await db.collection("appraisals").doc("company_wide").set(store);
+        } else {
+            const ids = new Set();
+            if (store.currentUser?.id) ids.add(store.currentUser.id);
+            if (store.selectedEmployeeId) ids.add(store.selectedEmployeeId);
+            
+            const updatePayload = {};
+            ids.forEach(id => {
+                if (store.employees[id]) updatePayload[`employees.${id}`] = store.employees[id];
+            });
+            
+            if (Object.keys(updatePayload).length > 0) {
+                await db.collection("appraisals").doc("company_wide").update(updatePayload).catch(() => {
+                    return db.collection("appraisals").doc("company_wide").set(store);
+                });
+            } else {
+                await db.collection("appraisals").doc("company_wide").set(store);
+            }
+        }
+        console.log(`Cloud Sync: Success (${forceFull ? 'Full' : 'Partial'})`);
         
         // --- AUDIT LOGGING ---
         if (store.currentUser) {
@@ -442,7 +461,7 @@ async function loadFromCloud() {
 
             if (applyManagerMapping()) added = true;
 
-            if (added) save();
+            if (added) save(true);
             
             // SESSION RESTORE
             const sessionData = localStorage.getItem('sa_eval_session');
@@ -472,7 +491,7 @@ async function loadFromCloud() {
             if (!store.currentUser) render(); // Only render if not logged in to avoid double render
         } else {
             console.log("No cloud data found. Using local template.");
-            save();
+            save(true);
         }
     } catch (e) {
         console.error("Fetch Error:", e);
@@ -979,7 +998,7 @@ window.resetEvaluation = (id) => {
         u.statusOverride = '';
         u.l1_reviewer = '';
         u.l2_reviewer = '';
-        save(); render();
+        save(true); render();
         showNote(`Evaluation reset for ${u.name}`);
     }
 };
@@ -987,7 +1006,7 @@ window.resetEvaluation = (id) => {
 window.deleteUser = (id) => {
     if (confirm(`Delete user ${id}?`)) {
         delete store.employees[id];
-        save(); render();
+        save(true); render();
     }
 };
 
@@ -996,13 +1015,18 @@ window.addUser = (id, name, role, pass) => {
     if (store.employees[id]) return alert('ID already exists');
     
     store.employees[id] = {
-        name, role, icon: name.charAt(0), password: pass,
+        id: id.toLowerCase().replace(/\s+/g, '.'),
+        name: name,
+        role: role,
+        password: pass,
         kras: JSON.parse(JSON.stringify(KRA_TEMPLATE)),
         ksa: JSON.parse(JSON.stringify(KSA_TEMPLATE)),
         coe: JSON.parse(JSON.stringify(COE_TEMPLATE)),
         certifications: JSON.parse(JSON.stringify(CERT_TEMPLATE))
     };
-    save(); render();
+    save(true); render();
+    document.getElementById('add-id').value = '';
+    document.getElementById('add-name').value = '';
 };
 
 function renderAdmin(container) {
