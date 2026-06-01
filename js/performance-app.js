@@ -271,13 +271,16 @@ async function save(forceFull = false) {
             if (store.currentUser?.id) ids.add(store.currentUser.id);
             if (store.selectedEmployeeId) ids.add(store.selectedEmployeeId);
             
-            const updatePayload = {};
+            const updateArgs = [];
             ids.forEach(id => {
-                if (store.employees[id]) updatePayload[`employees.${id}`] = store.employees[id];
+                if (store.employees[id]) {
+                    updateArgs.push(new firebase.firestore.FieldPath("employees", id));
+                    updateArgs.push(store.employees[id]);
+                }
             });
             
-            if (Object.keys(updatePayload).length > 0) {
-                await db.collection("appraisals").doc("company_wide").update(updatePayload).catch(() => {
+            if (updateArgs.length > 0) {
+                await db.collection("appraisals").doc("company_wide").update(...updateArgs).catch(() => {
                     return db.collection("appraisals").doc("company_wide").set(store);
                 });
             } else {
@@ -1095,7 +1098,7 @@ function renderAdmin(container) {
 
 function renderAdminResults(tbody) {
     tbody.innerHTML = Object.entries(store.employees)
-        .filter(([id, u]) => u.name.toLowerCase().includes(searchQuery) || id.toLowerCase().includes(searchQuery))
+        .filter(([id, u]) => (u.name || '').toLowerCase().includes(searchQuery) || id.toLowerCase().includes(searchQuery))
         .map(([id, u]) => `
             <tr class="hover:bg-slate-50/50 transition-colors">
                 <td class="p-6" data-label="Resource">
@@ -1225,7 +1228,7 @@ function renderDashboard(container) {
 
 function renderDashboardResults(container) {
     const filteredEmployees = getVisibleEmployees()
-        .filter(e => e.name.toLowerCase().includes(searchQuery) || e.id.toLowerCase().includes(searchQuery))
+        .filter(e => (e.name || '').toLowerCase().includes(searchQuery) || (e.id || '').toLowerCase().includes(searchQuery))
         .filter(e => {
             const status = getStatus(e);
             if (pipelineFilter === 'self') return status === 'Self Done' || status === 'Self-Completed';
