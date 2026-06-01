@@ -375,6 +375,21 @@ async function loadFromCloud() {
                 if (!emp.role) emp.role = emp.id.includes('emp') ? 'employee' : 'l1';
             });
             
+            // CLEANUP FIRST: Migrate stale emp-* IDs to name-based IDs BEFORE creating new templates
+            Object.keys(store.employees).forEach(id => {
+                if (id.startsWith('emp-')) {
+                    const emp = store.employees[id];
+                    const targetId = toUserId(emp.name);
+                    // Copy data if target doesn't exist, OR if target is just a blank un-started template
+                    if (!store.employees[targetId] || store.employees[targetId].kras[0].self.rating === 0) {
+                        store.employees[targetId] = JSON.parse(JSON.stringify(emp));
+                        store.employees[targetId].id = targetId;
+                    }
+                    delete store.employees[id];
+                    added = true;
+                }
+            });
+            
             // MERGE NEW EMPLOYEES IF MISSING (using canonical employee list)
             RAW_EMPLOYEE_DATA.forEach((data) => {
                 const name = data[0];
@@ -411,20 +426,6 @@ async function loadFromCloud() {
                 store.employees['admin'].password = 'admin@2026';
                 added = true;
             }
-
-            // CLEANUP: Remove stale emp-* IDs that were replaced by name-based IDs
-            Object.keys(store.employees).forEach(id => {
-                if (id.startsWith('emp-')) {
-                    const emp = store.employees[id];
-                    const targetId = toUserId(emp.name);
-                    if (!store.employees[targetId]) {
-                        store.employees[targetId] = JSON.parse(JSON.stringify(emp));
-                        store.employees[targetId].id = targetId;
-                    }
-                    delete store.employees[id];
-                    added = true;
-                }
-            });
 
             // PURGE: Remove employees NOT in the canonical list (clears old bulk users)
             const canonicalIds = new Set(
@@ -968,6 +969,21 @@ window.exportIndividualCsv = (empId) => {
     showNote('Individual CSV Exported successfully!');
 };
 
+window.resetEvaluation = (id) => {
+    if (confirm(`Are you sure you want to completely erase the evaluation data for ${store.employees[id].name}?`)) {
+        const u = store.employees[id];
+        u.kras = JSON.parse(JSON.stringify(KRA_TEMPLATE));
+        u.ksa = JSON.parse(JSON.stringify(KSA_TEMPLATE));
+        u.coe = JSON.parse(JSON.stringify(COE_TEMPLATE));
+        u.certifications = JSON.parse(JSON.stringify(CERT_TEMPLATE));
+        u.statusOverride = '';
+        u.l1_reviewer = '';
+        u.l2_reviewer = '';
+        save(); render();
+        showNote(`Evaluation reset for ${u.name}`);
+    }
+};
+
 window.deleteUser = (id) => {
     if (confirm(`Delete user ${id}?`)) {
         delete store.employees[id];
@@ -1077,6 +1093,9 @@ function renderAdminResults(tbody) {
                 <td class="p-6 font-mono text-sm text-slate-500" data-label="Employee ID">${id}</td>
                 <td class="p-6 font-mono text-sm text-orange-600 font-bold" data-label="Temp Password">${u.password || '---'}</td>
                 <td class="p-6 text-right flex items-center justify-end gap-2" data-label="Actions">
+                    <button onclick="resetEvaluation('${id}')" title="Reset Evaluation" class="p-2 text-indigo-400 hover:bg-indigo-50 rounded-lg transition-all">
+                        <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+                    </button>
                     <button onclick="toggleAccess('${id}')" title="${u.isRevoked ? 'Grant Access' : 'Revoke Access'}" class="p-2 ${u.isRevoked ? 'text-emerald-500 hover:bg-emerald-50' : 'text-orange-400 hover:bg-orange-50'} rounded-lg transition-all">
                         <i data-lucide="${u.isRevoked ? 'unlock' : 'lock'}" class="w-5 h-5"></i>
                     </button>
