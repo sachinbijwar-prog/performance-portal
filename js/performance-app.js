@@ -507,10 +507,15 @@ async function loadFromCloud() {
 // -- ANALYTICS --
 function getStatus(emp) {
     if (emp.statusOverride) return emp.statusOverride;
-    const selfDone = emp.kras.every(k => k.self.rating > 0 && k.self.justification.trim().length > 0) &&
-        Object.values(emp.ksa).every(k => k.self.rating > 0 && k.self.justification.trim().length > 0);
-    const l1Done = emp.kras.every(k => k.l1.rating > 0) && Object.values(emp.ksa).every(k => k.l1.rating > 0);
-    const l2Done = emp.kras.every(k => k.l2.rating > 0) && Object.values(emp.ksa).every(k => k.l2.rating > 0);
+    const kras = emp.kras || [];
+    const ksa = Object.values(emp.ksa || {});
+    if (kras.length === 0 || ksa.length === 0) return 'Draft';
+    
+    const selfDone = kras.every(k => k.self?.rating > 0 && (k.self?.justification || '').trim().length > 0) &&
+        ksa.every(k => k.self?.rating > 0 && (k.self?.justification || '').trim().length > 0);
+    const l1Done = kras.every(k => k.l1?.rating > 0) && ksa.every(k => k.l1?.rating > 0);
+    const l2Done = kras.every(k => k.l2?.rating > 0) && ksa.every(k => k.l2?.rating > 0);
+    
     if (l2Done) return 'L2 Completed';
     if (l1Done) return 'L1 Completed';
     if (selfDone) return 'Self Done';
