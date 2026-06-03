@@ -259,8 +259,8 @@ applyManagerMapping();
 
 // Update Cloud when data changes
 async function save(forceFull = false) {
-    // 1. Keep LocalStorage as "Emergency Backup"
-    localStorage.setItem('nexgen_v5_local', JSON.stringify(store));
+    // 1. Purge legacy insecure LocalStorage backup
+    localStorage.removeItem('nexgen_v5_local');
 
     // 2. Push to Firestore
     try {
@@ -335,6 +335,10 @@ async function loadFromCloud() {
         const doc = await db.collection("appraisals").doc("company_wide").get();
         if (doc.exists) {
             store = doc.data();
+            
+            // Purge legacy insecure local backup if it exists
+            localStorage.removeItem('nexgen_v5_local');
+            
             // MIGRATION: Ensure new sections exist for existing data
             let added = false;
             const NEW_KRA_IDS = new Set(['kra-1','kra-2','kra-3','kra-4','kra-5','kra-6','kra-7','kra-8','kra-9','kra-10']);
@@ -498,9 +502,8 @@ async function loadFromCloud() {
         }
     } catch (e) {
         console.error("Fetch Error:", e);
-        // Fallback to local storage if cloud fails
-        const backup = localStorage.getItem('nexgen_v5_local');
-        if (backup) store = JSON.parse(backup);
+        // Legacy local storage fallback removed due to critical security vulnerability (credentials exposure)
+        showNote("Network Error! Could not reach the cloud database.");
     }
 }
 
@@ -1006,7 +1009,13 @@ window.resetEvaluation = (id) => {
         u.statusOverride = '';
         u.l1_reviewer = '';
         u.l2_reviewer = '';
-        save(true); render();
+        
+        const oldId = store.selectedEmployeeId;
+        store.selectedEmployeeId = id;
+        save();
+        store.selectedEmployeeId = oldId;
+        
+        render();
         showNote(`Evaluation reset for ${u.name}`);
     }
 };
@@ -1014,6 +1023,8 @@ window.resetEvaluation = (id) => {
 window.deleteUser = (id) => {
     if (confirm(`Delete user ${id}?`)) {
         delete store.employees[id];
+        
+        // Push full save for deletions as we need to remove the key
         save(true); render();
     }
 };
@@ -1032,9 +1043,17 @@ window.addUser = (id, name, role, pass) => {
         coe: JSON.parse(JSON.stringify(COE_TEMPLATE)),
         certifications: JSON.parse(JSON.stringify(CERT_TEMPLATE))
     };
-    save(true); render();
-    document.getElementById('add-id').value = '';
-    document.getElementById('add-name').value = '';
+    
+    const oldId = store.selectedEmployeeId;
+    store.selectedEmployeeId = id;
+    save();
+    store.selectedEmployeeId = oldId;
+    
+    render();
+    document.getElementById('add-user-modal').classList.add('hidden');
+    document.getElementById('new-id').value = '';
+    document.getElementById('new-name').value = '';
+    showNote('User created successfully');
 };
 
 function renderAdmin(container) {
@@ -1144,7 +1163,12 @@ window.toggleAccess = (id) => {
     if (id === 'admin') return showNote("Cannot revoke Administrator access.", "error");
     const u = store.employees[id];
     u.isRevoked = !u.isRevoked;
+    
+    const oldId = store.selectedEmployeeId;
+    store.selectedEmployeeId = id;
     save();
+    store.selectedEmployeeId = oldId;
+    
     const tbody = document.getElementById('admin-table-body');
     if (tbody) renderAdminResults(tbody);
     showNote(`Access ${u.isRevoked ? 'REVOKED' : 'GRANTED'} for ${u.name}`);
