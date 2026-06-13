@@ -173,6 +173,7 @@ RAW_EMPLOYEE_DATA.forEach((data, index) => {
 
 // --- GLOBAL STORE ---
 let store = INITIAL_DATA; // Start with local default
+let isLoadedFromCloud = false;
 
 function toUserId(name) {
     return (name || '').toLowerCase().replace(/\s+/g, '.');
@@ -261,6 +262,11 @@ applyManagerMapping();
 async function save() {
     // 1. Keep LocalStorage as "Emergency Backup"
     localStorage.setItem('nexgen_v5_local', JSON.stringify(store));
+
+    if (!isLoadedFromCloud) {
+        console.warn("Save blocked: Active database not loaded successfully from the cloud.");
+        return;
+    }
 
     // 2. Push to Firestore
     try {
@@ -469,8 +475,10 @@ async function loadFromCloud() {
             
             console.log("Cloud Data Loaded & Session Restored");
             if (!store.currentUser) render(); // Only render if not logged in to avoid double render
+            isLoadedFromCloud = true;
         } else {
             console.log("No cloud data found. Using local template.");
+            isLoadedFromCloud = true;
             save();
         }
     } catch (e) {
@@ -881,13 +889,13 @@ window.exportToCsv = (fullDump = false) => {
             // Add KRA ratings and justifications
             (u.kras || []).forEach(k => {
                 row.push(k.self.rating || 0);
-                row.push(`"${(k.self.justification || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`);
+                row.push(k.self.justification || '');
             });
             
             // Add KSA ratings and justifications
             Object.keys(u.ksa || {}).forEach(k => {
                 row.push(u.ksa[k].self.rating || 0);
-                row.push(`"${(u.ksa[k].self.justification || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`);
+                row.push(u.ksa[k].self.justification || '');
             });
             
             rows.push(row);
@@ -901,14 +909,28 @@ window.exportToCsv = (fullDump = false) => {
         });
     }
 
-    const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
-    const encodedUri = encodeURI(csvContent);
+    const escapeCsvCell = (val) => {
+        if (val === null || val === undefined) return '';
+        let formatted = String(val);
+        // Replace newlines with spaces to prevent breaking spreadsheet row layouts
+        formatted = formatted.replace(/\r?\n|\r/g, ' ');
+        if (formatted.includes('"') || formatted.includes(',') || formatted.includes(';') || formatted.includes('\n') || formatted.includes('\r')) {
+            formatted = '"' + formatted.replace(/"/g, '""') + '"';
+        }
+        return formatted;
+    };
+
+    const csvContent = "\ufeff" + rows.map(e => e.map(escapeCsvCell).join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
     const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
+    link.setAttribute("href", url);
     link.setAttribute("download", fullDump ? `Smartavya_Evaluation_Dump_2026.csv` : `Smartavya_Performance_Report_2026.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
 };
 
 window.exportIndividualCsv = (empId) => {
@@ -918,8 +940,8 @@ window.exportIndividualCsv = (empId) => {
     
     let rows = [];
     rows.push(['Employee Name', u.name]);
-    rows.push(['Employee ID', u.id]);
-    rows.push(['Role', u.designation]);
+    rows.push(['Employee ID', u.id || empId]);
+    rows.push(['Role', u.designation || u.role]);
     rows.push(['Status', getStatus(u)]);
     rows.push(['Final KRA Score', scores.kra]);
     rows.push(['Final KSA Score', scores.ksa]);
@@ -934,9 +956,9 @@ window.exportIndividualCsv = (empId) => {
             k.title,
             `${k.weightage}%`,
             k.self.rating || 0,
-            `"${(k.self.justification || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`,
+            k.self.justification || '',
             k.l1.rating || 0,
-            `"${(k.l1.comments || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`,
+            k.l1.comments || '',
             k.l2.rating || 0
         ]);
     });
@@ -950,21 +972,34 @@ window.exportIndividualCsv = (empId) => {
         rows.push([
             k.label,
             k.self.rating || 0,
-            `"${(k.self.justification || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`,
+            k.self.justification || '',
             k.l1.rating || 0,
-            `"${(k.l1.comments || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`,
+            k.l1.comments || '',
             k.l2.rating || 0
         ]);
     });
     
-    const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
-    const encodedUri = encodeURI(csvContent);
+    const escapeCsvCell = (val) => {
+        if (val === null || val === undefined) return '';
+        let formatted = String(val);
+        formatted = formatted.replace(/\r?\n|\r/g, ' ');
+        if (formatted.includes('"') || formatted.includes(',') || formatted.includes(';') || formatted.includes('\n') || formatted.includes('\r')) {
+            formatted = '"' + formatted.replace(/"/g, '""') + '"';
+        }
+        return formatted;
+    };
+
+    const csvContent = "\ufeff" + rows.map(e => e.map(escapeCsvCell).join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
     const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
+    link.setAttribute("href", url);
     link.setAttribute("download", `${u.name.replace(/\s+/g, '_')}_Performance_Review_2026.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
     showNote('Individual CSV Exported successfully!');
 };
 
