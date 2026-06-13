@@ -259,9 +259,9 @@ applyManagerMapping();
 // --- FIREBASE SYNC FUNCTIONS ---
 
 // Update Cloud when data changes
-async function save() {
-    // 1. Keep LocalStorage as "Emergency Backup"
-    localStorage.setItem('nexgen_v5_local', JSON.stringify(store));
+async function save(forceFull = false) {
+    // 1. Purge legacy insecure LocalStorage backup
+    localStorage.removeItem('nexgen_v5_local');
 
     if (!isLoadedFromCloud) {
         console.warn("Save blocked: Active database not loaded successfully from the cloud.");
@@ -270,8 +270,30 @@ async function save() {
 
     // 2. Push to Firestore
     try {
-        await db.collection("appraisals").doc("company_wide").set(store);
-        console.log("Cloud Sync: Success");
+        if (forceFull) {
+            await db.collection("appraisals").doc("company_wide").set(store);
+        } else {
+            const ids = new Set();
+            if (store.currentUser?.id) ids.add(store.currentUser.id);
+            if (store.selectedEmployeeId) ids.add(store.selectedEmployeeId);
+            
+            const updateArgs = [];
+            ids.forEach(id => {
+                if (store.employees[id]) {
+                    updateArgs.push(new firebase.firestore.FieldPath("employees", id));
+                    updateArgs.push(store.employees[id]);
+                }
+            });
+            
+            if (updateArgs.length > 0) {
+                await db.collection("appraisals").doc("company_wide").update(...updateArgs).catch(() => {
+                    return db.collection("appraisals").doc("company_wide").set(store);
+                });
+            } else {
+                await db.collection("appraisals").doc("company_wide").set(store);
+            }
+        }
+        console.log(`Cloud Sync: Success (${forceFull ? 'Full' : 'Partial'})`);
         
         // --- AUDIT LOGGING ---
         if (store.currentUser) {
@@ -319,6 +341,10 @@ async function loadFromCloud() {
         const doc = await db.collection("appraisals").doc("company_wide").get();
         if (doc.exists) {
             store = doc.data();
+            
+            // Purge legacy insecure local backup if it exists
+            localStorage.removeItem('nexgen_v5_local');
+            
             // MIGRATION: Ensure new sections exist for existing data
             let added = false;
             const NEW_KRA_IDS = new Set(['kra-1','kra-2','kra-3','kra-4','kra-5','kra-6','kra-7','kra-8','kra-9','kra-10']);
@@ -381,6 +407,21 @@ async function loadFromCloud() {
                 if (!emp.role) emp.role = emp.id.includes('emp') ? 'employee' : 'l1';
             });
             
+            // CLEANUP FIRST: Migrate stale emp-* IDs to name-based IDs BEFORE creating new templates
+            Object.keys(store.employees).forEach(id => {
+                if (id.startsWith('emp-')) {
+                    const emp = store.employees[id];
+                    const targetId = toUserId(emp.name);
+                    // Copy data if target doesn't exist, OR if target is just a blank un-started template
+                    if (!store.employees[targetId] || store.employees[targetId].kras[0].self.rating === 0) {
+                        store.employees[targetId] = JSON.parse(JSON.stringify(emp));
+                        store.employees[targetId].id = targetId;
+                    }
+                    delete store.employees[id];
+                    added = true;
+                }
+            });
+            
             // MERGE NEW EMPLOYEES IF MISSING (using canonical employee list)
             RAW_EMPLOYEE_DATA.forEach((data) => {
                 const name = data[0];
@@ -418,20 +459,6 @@ async function loadFromCloud() {
                 added = true;
             }
 
-            // CLEANUP: Remove stale emp-* IDs that were replaced by name-based IDs
-            Object.keys(store.employees).forEach(id => {
-                if (id.startsWith('emp-')) {
-                    const emp = store.employees[id];
-                    const targetId = toUserId(emp.name);
-                    if (!store.employees[targetId]) {
-                        store.employees[targetId] = JSON.parse(JSON.stringify(emp));
-                        store.employees[targetId].id = targetId;
-                    }
-                    delete store.employees[id];
-                    added = true;
-                }
-            });
-
             // PURGE: Remove employees NOT in the canonical list (clears old bulk users)
             const canonicalIds = new Set(
                 RAW_EMPLOYEE_DATA.map(d => toUserId(d[0]))
@@ -447,7 +474,7 @@ async function loadFromCloud() {
 
             if (applyManagerMapping()) added = true;
 
-            if (added) save();
+            if (added) save(true);
             
             // SESSION RESTORE
             const sessionData = localStorage.getItem('sa_eval_session');
@@ -476,26 +503,29 @@ async function loadFromCloud() {
             console.log("Cloud Data Loaded & Session Restored");
             if (!store.currentUser) render(); // Only render if not logged in to avoid double render
             isLoadedFromCloud = true;
-        } else {
             console.log("No cloud data found. Using local template.");
             isLoadedFromCloud = true;
-            save();
+            save(true);
         }
     } catch (e) {
         console.error("Fetch Error:", e);
-        // Fallback to local storage if cloud fails
-        const backup = localStorage.getItem('nexgen_v5_local');
-        if (backup) store = JSON.parse(backup);
+        // Legacy local storage fallback removed due to critical security vulnerability (credentials exposure)
+        showNote("Network Error! Could not reach the cloud database.");
     }
 }
 
 // -- ANALYTICS --
 function getStatus(emp) {
     if (emp.statusOverride) return emp.statusOverride;
-    const selfDone = emp.kras.every(k => k.self.rating > 0 && k.self.justification.trim().length > 0) &&
-        Object.values(emp.ksa).every(k => k.self.rating > 0 && k.self.justification.trim().length > 0);
-    const l1Done = emp.kras.every(k => k.l1.rating > 0) && Object.values(emp.ksa).every(k => k.l1.rating > 0);
-    const l2Done = emp.kras.every(k => k.l2.rating > 0) && Object.values(emp.ksa).every(k => k.l2.rating > 0);
+    const kras = emp.kras || [];
+    const ksa = Object.values(emp.ksa || {});
+    if (kras.length === 0 || ksa.length === 0) return 'Draft';
+    
+    const selfDone = kras.every(k => k.self?.rating > 0 && (k.self?.justification || '').trim().length > 0) &&
+        ksa.every(k => k.self?.rating > 0 && (k.self?.justification || '').trim().length > 0);
+    const l1Done = kras.every(k => k.l1?.rating > 0) && ksa.every(k => k.l1?.rating > 0);
+    const l2Done = kras.every(k => k.l2?.rating > 0) && ksa.every(k => k.l2?.rating > 0);
+    
     if (l2Done) return 'L2 Completed';
     if (l1Done) return 'L1 Completed';
     if (selfDone) return 'Self Done';
@@ -1003,10 +1033,33 @@ window.exportIndividualCsv = (empId) => {
     showNote('Individual CSV Exported successfully!');
 };
 
+window.resetEvaluation = (id) => {
+    if (confirm(`Are you sure you want to completely erase the evaluation data for ${store.employees[id].name}?`)) {
+        const u = store.employees[id];
+        u.kras = JSON.parse(JSON.stringify(KRA_TEMPLATE));
+        u.ksa = JSON.parse(JSON.stringify(KSA_TEMPLATE));
+        u.coe = JSON.parse(JSON.stringify(COE_TEMPLATE));
+        u.certifications = JSON.parse(JSON.stringify(CERT_TEMPLATE));
+        u.statusOverride = '';
+        u.l1_reviewer = '';
+        u.l2_reviewer = '';
+        
+        const oldId = store.selectedEmployeeId;
+        store.selectedEmployeeId = id;
+        save();
+        store.selectedEmployeeId = oldId;
+        
+        render();
+        showNote(`Evaluation reset for ${u.name}`);
+    }
+};
+
 window.deleteUser = (id) => {
     if (confirm(`Delete user ${id}?`)) {
         delete store.employees[id];
-        save(); render();
+        
+        // Push full save for deletions as we need to remove the key
+        save(true); render();
     }
 };
 
@@ -1015,13 +1068,26 @@ window.addUser = (id, name, role, pass) => {
     if (store.employees[id]) return alert('ID already exists');
     
     store.employees[id] = {
-        name, role, icon: name.charAt(0), password: pass,
+        id: id.toLowerCase().replace(/\s+/g, '.'),
+        name: name,
+        role: role,
+        password: pass,
         kras: JSON.parse(JSON.stringify(KRA_TEMPLATE)),
         ksa: JSON.parse(JSON.stringify(KSA_TEMPLATE)),
         coe: JSON.parse(JSON.stringify(COE_TEMPLATE)),
         certifications: JSON.parse(JSON.stringify(CERT_TEMPLATE))
     };
-    save(); render();
+    
+    const oldId = store.selectedEmployeeId;
+    store.selectedEmployeeId = id;
+    save();
+    store.selectedEmployeeId = oldId;
+    
+    render();
+    document.getElementById('add-user-modal').classList.add('hidden');
+    document.getElementById('new-id').value = '';
+    document.getElementById('new-name').value = '';
+    showNote('User created successfully');
 };
 
 function renderAdmin(container) {
@@ -1090,7 +1156,7 @@ function renderAdmin(container) {
 
 function renderAdminResults(tbody) {
     tbody.innerHTML = Object.entries(store.employees)
-        .filter(([id, u]) => u.name.toLowerCase().includes(searchQuery) || id.toLowerCase().includes(searchQuery))
+        .filter(([id, u]) => (u.name || '').toLowerCase().includes(searchQuery) || id.toLowerCase().includes(searchQuery))
         .map(([id, u]) => `
             <tr class="hover:bg-slate-50/50 transition-colors">
                 <td class="p-6" data-label="Resource">
@@ -1100,8 +1166,8 @@ function renderAdminResults(tbody) {
                     </div>
                 </td>
                 <td class="p-6" data-label="Role">
-                    <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase ${u.role === 'admin' ? 'bg-purple-100 text-purple-700' : u.role.includes('l') ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-700'}">
-                        ${u.role}
+                    <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase ${u.role === 'admin' ? 'bg-purple-100 text-purple-700' : (u.role || '').includes('l') ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-700'}">
+                        ${u.role || 'Unknown'}
                     </span>
                 </td>
                 <td class="p-6" data-label="Status">
@@ -1112,6 +1178,9 @@ function renderAdminResults(tbody) {
                 <td class="p-6 font-mono text-sm text-slate-500" data-label="Employee ID">${id}</td>
                 <td class="p-6 font-mono text-sm text-orange-600 font-bold" data-label="Temp Password">${u.password || '---'}</td>
                 <td class="p-6 text-right flex items-center justify-end gap-2" data-label="Actions">
+                    <button onclick="resetEvaluation('${id}')" title="Reset Evaluation" class="p-2 text-indigo-400 hover:bg-indigo-50 rounded-lg transition-all">
+                        <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+                    </button>
                     <button onclick="toggleAccess('${id}')" title="${u.isRevoked ? 'Grant Access' : 'Revoke Access'}" class="p-2 ${u.isRevoked ? 'text-emerald-500 hover:bg-emerald-50' : 'text-orange-400 hover:bg-orange-50'} rounded-lg transition-all">
                         <i data-lucide="${u.isRevoked ? 'unlock' : 'lock'}" class="w-5 h-5"></i>
                     </button>
@@ -1128,7 +1197,12 @@ window.toggleAccess = (id) => {
     if (id === 'admin') return showNote("Cannot revoke Administrator access.", "error");
     const u = store.employees[id];
     u.isRevoked = !u.isRevoked;
+    
+    const oldId = store.selectedEmployeeId;
+    store.selectedEmployeeId = id;
     save();
+    store.selectedEmployeeId = oldId;
+    
     const tbody = document.getElementById('admin-table-body');
     if (tbody) renderAdminResults(tbody);
     showNote(`Access ${u.isRevoked ? 'REVOKED' : 'GRANTED'} for ${u.name}`);
@@ -1217,7 +1291,7 @@ function renderDashboard(container) {
 
 function renderDashboardResults(container) {
     const filteredEmployees = getVisibleEmployees()
-        .filter(e => e.name.toLowerCase().includes(searchQuery) || e.id.toLowerCase().includes(searchQuery))
+        .filter(e => (e.name || '').toLowerCase().includes(searchQuery) || (e.id || '').toLowerCase().includes(searchQuery))
         .filter(e => {
             const status = getStatus(e);
             if (pipelineFilter === 'self') return status === 'Self Done' || status === 'Self-Completed';
