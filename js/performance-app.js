@@ -490,7 +490,9 @@ async function loadFromCloud() {
 
                 store.currentUser = session.user;
                 store.selectedEmployeeId = session.selectedId;
-                currentView = session.view || (store.currentUser.role === 'employee' ? 'kra' : 'dashboard');
+                currentView = store.currentUser.role === 'employee'
+                    ? 'feedback'
+                    : (session.view || 'dashboard');
                 
                 document.getElementById('login-overlay').classList.add('hidden');
                 document.getElementById('app-container').classList.remove('opacity-0', 'blur-xl');
@@ -688,14 +690,14 @@ window.login = (type, id, pass) => {
     localStorage.setItem('sa_eval_session', JSON.stringify({
         user: store.currentUser,
         selectedId: store.selectedEmployeeId,
-        view: emp.role === 'employee' ? 'kra' : 'dashboard'
+        view: emp.role === 'employee' ? 'feedback' : 'dashboard'
     }));
 
     save();
     document.getElementById('login-overlay').classList.add('hidden');
     document.getElementById('app-container').classList.remove('opacity-0', 'blur-xl');
     // Push initial history entry after login
-    const initialView = emp.role === 'employee' ? 'kra' : 'dashboard';
+    const initialView = emp.role === 'employee' ? 'feedback' : 'dashboard';
     history.replaceState({ view: initialView, selectedId: store.selectedEmployeeId }, '', '#' + initialView);
     renderSidebar(); 
     render();
@@ -805,7 +807,7 @@ window.addEventListener('popstate', (e) => {
     } else {
         // Fallback: read from hash
         const hash = location.hash.replace('#', '');
-        const validViews = ['dashboard', 'kra', 'ksa', 'admin'];
+        const validViews = ['dashboard', 'feedback', 'kra', 'ksa', 'admin'];
         if (validViews.includes(hash)) {
             navigate(hash, false);
         }
@@ -841,8 +843,9 @@ function renderSidebar() {
     const nav = document.getElementById('sidebar-nav'); nav.innerHTML = '';
     const menu = [
         { id: 'dashboard', label: 'Team Analytics', icon: 'pie-chart', roles: ['l1', 'l2', 'admin'] },
-        { id: 'kra', label: 'KRA Appraisal', icon: 'target', roles: ['employee', 'l1', 'l2', 'admin'] },
-        { id: 'ksa', label: 'KSA Competency', icon: 'brain', roles: ['employee', 'l1', 'l2', 'admin'] },
+        { id: 'feedback', label: 'Feedback & Ratings', icon: 'clipboard-check', roles: ['employee'] },
+        { id: 'kra', label: 'KRA Appraisal', icon: 'target', roles: ['l1', 'l2', 'admin'] },
+        { id: 'ksa', label: 'KSA Competency', icon: 'brain', roles: ['l1', 'l2', 'admin'] },
         { id: 'admin', label: 'User Management', icon: 'settings', roles: ['admin'] }
     ];
     menu.forEach(m => {
@@ -861,7 +864,7 @@ function render() {
     if (!store || !store.employees || !store.currentUser) return; 
     
     // Auto-view logic
-    if (store.currentUser.role === 'employee' && currentView === 'dashboard') currentView = 'kra';
+    if (store.currentUser.role === 'employee' && currentView !== 'feedback') currentView = 'feedback';
 
     const visibleIds = new Set(getVisibleEmployees().map(e => e.id));
     if (!visibleIds.has(store.selectedEmployeeId)) {
@@ -883,6 +886,19 @@ function render() {
     const status = getStatus(emp);
     const badge = document.getElementById('badge-status');
     if (badge) badge.innerText = status;
+
+    const viewTitle = document.getElementById('view-title');
+    if (viewTitle) {
+        viewTitle.innerText = store.currentUser.role === 'employee'
+            ? 'Final Feedback & Ratings'
+            : (currentView === 'dashboard' ? 'Performance Dashboard' : 'Performance Review');
+    }
+
+    const isEmployee = store.currentUser.role === 'employee';
+    ['btn-save', 'btn-submit', 'btn-export-individual'].forEach(id => {
+        const button = document.getElementById(id);
+        if (button) button.style.display = isEmployee ? 'none' : '';
+    });
     
     const userNameEl = document.getElementById('user-name');
     if (userNameEl) userNameEl.innerText = store.currentUser.name;
@@ -894,6 +910,7 @@ function render() {
     }
 
     if (currentView === 'dashboard') renderDashboard(body);
+    else if (currentView === 'feedback') renderEmployeeFeedback(body, emp);
     else if (currentView === 'kra') renderKra(body, emp);
     else if (currentView === 'ksa') renderKsa(body, emp);
     else if (currentView === 'admin') renderAdmin(body);
@@ -1347,6 +1364,158 @@ function renderDashboardResults(container) {
     lucide.createIcons();
 }
 
+function getRatingBand(score) {
+    const value = Number(score) || 0;
+    if (value >= 4.5) return { label: 'Outstanding', className: 'text-emerald-700 bg-emerald-100' };
+    if (value >= 4) return { label: 'Exceeds Expectations', className: 'text-blue-700 bg-blue-100' };
+    if (value >= 3) return { label: 'Meets Expectations', className: 'text-amber-700 bg-amber-100' };
+    if (value >= 2) return { label: 'Needs Improvement', className: 'text-orange-700 bg-orange-100' };
+    return { label: 'Unsatisfactory', className: 'text-rose-700 bg-rose-100' };
+}
+
+function getFinalRatingMessage(score, employeeName) {
+    const value = Number(score) || 0;
+    const firstName = (employeeName || 'there').split(' ')[0];
+    if (value >= 4.5) return {
+        icon: 'trophy',
+        eyebrow: 'Exceptional Achievement',
+        title: `Congratulations, ${firstName}!`,
+        message: 'Your outstanding result reflects exceptional impact, ownership, and consistency. Thank you for raising the bar and inspiring those around you.',
+        className: 'feedback-message-outstanding'
+    };
+    if (value >= 4) return {
+        icon: 'sparkles',
+        eyebrow: 'Excellent Performance',
+        title: `Well done, ${firstName}!`,
+        message: 'You have exceeded expectations through strong delivery and meaningful contributions. Keep building on this excellent momentum.',
+        className: 'feedback-message-exceeds'
+    };
+    if (value >= 3) return {
+        icon: 'badge-check',
+        eyebrow: 'Valued Contribution',
+        title: `Great work, ${firstName}!`,
+        message: 'You have delivered a solid performance and consistently met expectations. Your contribution is valued—keep growing from this strong foundation.',
+        className: 'feedback-message-meets'
+    };
+    if (value >= 2) return {
+        icon: 'trending-up',
+        eyebrow: 'Growth Opportunity',
+        title: `Keep moving forward, ${firstName}.`,
+        message: 'This feedback highlights clear opportunities for growth. Focus on the priority areas agreed with your managers and use them as your roadmap for the next cycle.',
+        className: 'feedback-message-growth'
+    };
+    return {
+        icon: 'compass',
+        eyebrow: 'Focused Development',
+        title: `Your next chapter starts here, ${firstName}.`,
+        message: 'Your managers’ feedback provides a focused development path. Work closely with them on the priority areas and turn each step into measurable progress.',
+        className: 'feedback-message-focus'
+    };
+}
+
+function renderRatingValue(value, colorClass) {
+    const rating = Number(value) || 0;
+    return `<span class="inline-flex items-center justify-center w-12 h-12 rounded-2xl text-lg font-black ${colorClass}">${rating || '—'}</span>`;
+}
+
+function renderEmployeeFeedback(container, emp) {
+    const scores = calculateScores(emp);
+    const band = getRatingBand(scores.final);
+    const finalMessage = getFinalRatingMessage(scores.final, emp.name);
+    const status = getStatus(emp);
+
+    const renderEvaluationRow = (title, subtitle, self, l1, l2) => `
+        <article class="feedback-item glass-card overflow-hidden">
+            <div class="p-5 md:p-6 border-b border-slate-100 bg-white/60">
+                <h3 class="text-sm md:text-base font-black text-slate-800">${title}</h3>
+                <p class="text-xs text-slate-400 mt-1">${subtitle}</p>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-slate-100">
+                <section class="p-5 md:p-6">
+                    <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Self Evaluation</p>
+                    <p class="feedback-copy">${self?.justification || 'No self-evaluation comment provided.'}</p>
+                </section>
+                <section class="p-5 md:p-6 bg-indigo-50/30">
+                    <p class="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-4">L1 Feedback</p>
+                    <p class="feedback-copy">${l1?.comments || "The L1 reviewer agrees with the employee's self-evaluation."}</p>
+                </section>
+                <section class="p-5 md:p-6 bg-emerald-50/30">
+                    <p class="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-4">L2 Feedback</p>
+                    <p class="feedback-copy">${l2?.comments || "The L2 reviewer agrees with the employee's self-evaluation and final assessment."}</p>
+                </section>
+            </div>
+        </article>`;
+
+    container.innerHTML = `
+        <div class="animate-fade-in max-w-7xl mx-auto space-y-8 pb-10">
+            <section class="feedback-hero relative overflow-hidden rounded-3xl bg-slate-900 text-white p-6 md:p-10 shadow-2xl">
+                <div class="absolute -right-20 -top-24 w-72 h-72 rounded-full bg-indigo-500/20 blur-3xl"></div>
+                <div class="relative flex flex-col xl:flex-row xl:items-center xl:justify-between gap-8">
+                    <div>
+                        <div class="flex flex-wrap items-center gap-2 mb-4">
+                            <span class="px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-400/20 text-[10px] font-black uppercase tracking-widest">${status}</span>
+                            <span class="text-xs text-slate-400">2026 Annual Evaluation</span>
+                        </div>
+                        <h1 class="text-2xl md:text-4xl font-black tracking-tight">${emp.name}</h1>
+                        <p class="text-slate-400 mt-2 font-medium">${emp.designation || 'Employee'} · Final performance feedback</p>
+                        <div class="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-xs text-slate-400">
+                            <span><strong class="text-slate-200">L1:</strong> ${emp.l1_reviewer || emp.l1ManagerName || 'NA'}</span>
+                            <span><strong class="text-slate-200">L2:</strong> ${emp.l2_reviewer || emp.l2ManagerName || 'NA'}</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="feedback-special-message ${finalMessage.className}">
+                <div class="feedback-message-icon"><i data-lucide="${finalMessage.icon}" class="w-7 h-7"></i></div>
+                <div class="relative">
+                    <p class="feedback-message-eyebrow">${finalMessage.eyebrow}</p>
+                    <h2>${finalMessage.title}</h2>
+                    <p>${finalMessage.message}</p>
+                </div>
+                <div class="feedback-message-score">
+                    <span>Your Final Rating</span>
+                    <strong>${scores.final}</strong>
+                    <small>${band.label}</small>
+                </div>
+            </section>
+
+            <section>
+                <div class="flex items-center gap-3 mb-5">
+                    <div class="p-2.5 bg-indigo-100 text-indigo-700 rounded-xl"><i data-lucide="target" class="w-5 h-5"></i></div>
+                    <div><h2 class="text-xl font-black text-slate-800">KRA Feedback</h2><p class="text-xs text-slate-400">Your self-evaluation and manager feedback shown together.</p></div>
+                </div>
+                <div class="space-y-5">
+                    ${(emp.kras || []).map(k => renderEvaluationRow(k.title, 'Key Result Area', k.self, k.l1, k.l2)).join('')}
+                </div>
+            </section>
+
+            <section>
+                <div class="flex items-center gap-3 mb-5">
+                    <div class="p-2.5 bg-purple-100 text-purple-700 rounded-xl"><i data-lucide="brain" class="w-5 h-5"></i></div>
+                    <div><h2 class="text-xl font-black text-slate-800">KSA Feedback</h2><p class="text-xs text-slate-400">Written competency feedback from each review stage.</p></div>
+                </div>
+                <div class="space-y-5">
+                    ${Object.values(emp.ksa || {}).map(k => renderEvaluationRow(k.label, 'Knowledge, Skills & Attributes', k.self, k.l1, k.l2)).join('')}
+                </div>
+            </section>
+
+            <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="glass-card p-6 rounded-3xl">
+                    <h2 class="font-black text-slate-800 flex items-center gap-2 mb-5"><i data-lucide="award" class="w-5 h-5 text-indigo-600"></i> CoE Contributions</h2>
+                    <div class="space-y-4">
+                        ${(emp.coe || []).map(c => `<div class="p-4 rounded-2xl bg-slate-50 border border-slate-100"><p class="text-xs font-black text-slate-700">${c.title}</p><p class="text-sm text-slate-500 mt-2">${c.self?.description || 'No contribution recorded.'}</p>${c.l1?.comments ? `<p class="text-xs text-indigo-600 mt-2"><strong>L1:</strong> ${c.l1.comments}</p>` : ''}</div>`).join('')}
+                    </div>
+                </div>
+                <div class="glass-card p-6 rounded-3xl">
+                    <h2 class="font-black text-slate-800 flex items-center gap-2 mb-5"><i data-lucide="shield-check" class="w-5 h-5 text-emerald-600"></i> Certifications</h2>
+                    <div class="space-y-4">
+                        ${(emp.certifications || []).map(c => `<div class="p-4 rounded-2xl bg-slate-50 border border-slate-100"><p class="text-xs font-black text-slate-700">${c.self?.name || c.title}</p><p class="text-xs text-slate-400 mt-1">${c.self?.date || 'No completion date'} · ${Number(c.l1?.rating) === 5 ? 'Verified' : 'Not verified'}</p></div>`).join('')}
+                    </div>
+                </div>
+            </section>
+        </div>`;
+}
 function renderKra(container, emp) {
     const status = getStatus(emp);
     const canEditSelf = canReviewAs(emp, 'self');
