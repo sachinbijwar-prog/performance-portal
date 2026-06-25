@@ -1329,7 +1329,7 @@ function renderDashboardResults(container) {
     container.innerHTML = filteredEmployees
         .map(e => {
             const s = calculateScores(e);
-            const canViewScores = ['l2', 'admin'].includes(store.currentUser.role);
+            const canViewScores = ['l1', 'l2', 'admin'].includes(store.currentUser.role);
             const status = getStatus(e);
             return `
                 <div class="employee-review-card glass-card p-0 overflow-hidden hover:scale-[1.01] transition-all border border-slate-100 shadow-sm animate-fade-in">
